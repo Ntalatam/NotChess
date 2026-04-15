@@ -1,5 +1,14 @@
-import { createBoardMetrics, drawBoard } from "./board.js";
-import { renderShell, showAnnouncement } from "./ui.js";
+import { createBoardMetrics, drawBoard, pointToSquare } from "./board.js";
+import { drawPieces, getPieceAt } from "./pieces.js";
+import {
+  getDisplayMoves,
+  getLegalMoves,
+  getPromotionChoices,
+  isPlayersPiece,
+  requestStandardMove,
+} from "./rules.js";
+import { CONFIG, createInitialState, syncHudStats } from "./state.js";
+import { renderEndOverlay, renderShell, showAnnouncement } from "./ui.js";
 
 const STORAGE_KEY = "wacko-chess-settings-v1";
 const STATS_KEY = "wacko-chess-stats-v1";
@@ -25,33 +34,11 @@ const elements = {
   eventLog: document.querySelector("#eventLog"),
   announcement: document.querySelector("#announcement"),
   statsStrip: document.querySelector("#statsStrip"),
+  promotionOverlay: document.querySelector("#promotionOverlay"),
+  endOverlay: document.querySelector("#endOverlay"),
 };
 
-const state = {
-  turn: "white",
-  turnCount: 1,
-  chaosMeter: 0,
-  status: "Waiting at the table",
-  selected: null,
-  validMoves: [],
-  targetSquares: [],
-  hands: {
-    white: [],
-    black: [],
-  },
-  players: {
-    white: { name: "White", captured: 0, mutations: 0, frozen: 0, clock: "--:--" },
-    black: { name: "Black", captured: 0, mutations: 0, frozen: 0, clock: "--:--" },
-  },
-  deck: {
-    remaining: 40,
-    discarded: 0,
-  },
-  activeEvents: [],
-  log: ["The board is armed."],
-  stats: loadStats(),
-};
-
+let state = createInitialState({ stats: loadStats() });
 let boardMetrics;
 let frame = 0;
 
@@ -59,37 +46,183 @@ function init() {
   applyStoredSettings();
   bindEvents();
   resizeBoard();
-  renderShell(state, elements);
+  render();
   requestAnimationFrame(tick);
 }
 
 function bindEvents() {
   window.addEventListener("resize", resizeBoard);
   elements.startForm.addEventListener("submit", handleStart);
+  elements.boardCanvas.addEventListener("click", handleBoardClick);
+  elements.promotionOverlay.addEventListener("click", handlePromotionClick);
+  elements.endOverlay.addEventListener("click", handleEndClick);
+  window.addEventListener("keydown", handleKeydown);
 }
 
 function handleStart(event) {
   event.preventDefault();
-  const formData = new FormData(elements.startForm);
-  const settings = {
-    whiteName: cleanName(formData.get("whiteName"), "White"),
-    blackName: cleanName(formData.get("blackName"), "Black"),
-    intensity: String(formData.get("intensity") || "standard"),
-    timer: String(formData.get("timer") || "unlimited"),
-  };
-
+  const settings = readSettingsForm();
   persistSettings(settings);
-  state.players.white.name = settings.whiteName;
-  state.players.black.name = settings.blackName;
-  state.players.white.clock = settings.timer === "unlimited" ? "--:--" : `${settings.timer}:00`;
-  state.players.black.clock = settings.timer === "unlimited" ? "--:--" : `${settings.timer}:00`;
+  state = createInitialState({ ...settings, stats: loadStats() });
   state.status = `${settings.intensity} chaos`;
   state.log = [`${settings.whiteName} and ${settings.blackName} begin.`];
 
   elements.menuOverlay.hidden = true;
+  elements.endOverlay.hidden = true;
   elements.appShell.dataset.screen = "game";
-  renderShell(state, elements);
+  render();
   showAnnouncement(elements, "Match begins", "warning");
+}
+
+function handleBoardClick(event) {
+  if (state.gameOver || !elements.menuOverlay.hidden || !elements.promotionOverlay.hidden) return;
+
+  const rect = elements.boardCanvas.getBoundingClientRect();
+  const square = pointToSquare(boardMetrics, event.clientX - rect.left, event.clientY - rect.top);
+  if (!square) {
+    clearSelection();
+    return;
+  }
+
+  const clickedPiece = getPieceAt(state.board, square.row, square.col);
+
+  if (state.selected) {
+    if (clickedPiece && isPlayersPiece(state, square.row, square.col)) {
+      selectPiece(square.row, square.col);
+      return;
+    }
+
+    const promotionChoices = getPromotionChoices(state.validMoves, square.row, square.col);
+    if (promotionChoices.length > 0) {
+      state.pendingPromotion = {
+        from: { row: state.selected.row, col: state.selected.col },
+        to: square,
+        choices: promotionChoices,
+      };
+      renderPromotionChoices(promotionChoices);
+      return;
+    }
+
+    if (state.validMoves.some((move) => move.row === square.row && move.col === square.col)) {
+      commitMove({ row: state.selected.row, col: state.selected.col }, square);
+      return;
+    }
+
+    clearSelection();
+    return;
+  }
+
+  if (clickedPiece && isPlayersPiece(state, square.row, square.col)) {
+    selectPiece(square.row, square.col);
+  }
+}
+
+function handlePromotionClick(event) {
+  const button = event.target.closest("button[data-piece]");
+  if (!button || !state.pendingPromotion) return;
+  const promotion = button.dataset.piece;
+  if (!state.pendingPromotion.choices.includes(promotion)) return;
+
+  const { from, to } = state.pendingPromotion;
+  elements.promotionOverlay.hidden = true;
+  commitMove(from, to, promotion);
+}
+
+function handleEndClick(event) {
+  const button = event.target.closest("button[data-end-action]");
+  if (!button) return;
+
+  if (button.dataset.endAction === "restart") {
+    restartMatch(false);
+  } else {
+    restartMatch(true);
+  }
+}
+
+function handleKeydown(event) {
+  if (event.key !== "Escape") return;
+  elements.promotionOverlay.hidden = true;
+  state.pendingPromotion = null;
+  clearSelection();
+}
+
+function selectPiece(row, col) {
+  const piece = getPieceAt(state.board, row, col);
+  if (!piece) return;
+
+  state.selected = { row, col, pieceId: piece.id };
+  state.validMoves = getLegalMoves(state, piece.id);
+}
+
+function clearSelection() {
+  state.selected = null;
+  state.validMoves = [];
+  state.targetSquares = [];
+  state.pendingPromotion = null;
+  elements.promotionOverlay.hidden = true;
+}
+
+function commitMove(from, to, promotion = undefined) {
+  const result = requestStandardMove(state, from, to, promotion);
+  if (!result) {
+    showAnnouncement(elements, "Illegal move", "critical");
+    clearSelection();
+    return;
+  }
+
+  state.animation = {
+    pieceId: result.movingPiece.id,
+    piece: { ...result.movingPiece, mutations: [...result.movingPiece.mutations] },
+    from: result.from,
+    to: result.to,
+    startedAt: performance.now(),
+    duration: CONFIG.moveAnimMs,
+  };
+
+  if (result.captured) {
+    state.effects.captures.push({
+      row: result.to.row,
+      col: result.to.col,
+      startedAt: performance.now(),
+      duration: 420,
+    });
+  }
+
+  if (state.gameOver) {
+    updateStatsForGameOver();
+    showAnnouncement(elements, state.gameOverReason, state.winner ? "critical" : "warning");
+  } else if (state.check) {
+    showAnnouncement(elements, "Check", "critical");
+  }
+
+  render();
+
+  window.setTimeout(() => {
+    state.animation = null;
+  }, CONFIG.moveAnimMs + 40);
+}
+
+function renderPromotionChoices(choices) {
+  for (const button of elements.promotionOverlay.querySelectorAll("button[data-piece]")) {
+    button.hidden = !choices.includes(button.dataset.piece);
+  }
+  elements.promotionOverlay.hidden = false;
+}
+
+function restartMatch(showMenu) {
+  const settings = readSettingsForm();
+  state = createInitialState({ ...settings, stats: loadStats() });
+  elements.endOverlay.hidden = true;
+  elements.endOverlay.innerHTML = "";
+  elements.menuOverlay.hidden = !showMenu;
+  elements.appShell.dataset.screen = showMenu ? "menu" : "game";
+  render();
+}
+
+function render() {
+  syncHudStats(state);
+  renderShell(state, elements);
+  renderEndOverlay(elements.endOverlay, state);
 }
 
 function resizeBoard() {
@@ -108,12 +241,16 @@ function resizeMenuCanvas() {
 
 function tick() {
   frame += 1;
+  const now = performance.now();
+  state.effects.captures = state.effects.captures.filter((effect) => now - effect.startedAt <= effect.duration);
+
   const boardCtx = elements.boardCanvas.getContext("2d");
   drawBoard(boardCtx, boardMetrics, frame, {
     selected: state.selected,
-    validMoves: state.validMoves,
+    validMoves: getDisplayMoves(state.validMoves),
     targetSquares: state.targetSquares,
   });
+  drawPieces(boardCtx, boardMetrics, state, frame, now);
   drawMenuBackdrop(frame);
   requestAnimationFrame(tick);
 }
@@ -155,6 +292,27 @@ function drawMenuBackdrop(currentFrame) {
   ctx.restore();
 }
 
+function updateStatsForGameOver() {
+  if (state.stats._updatedForCurrentGame) return;
+  state.stats.gamesPlayed += 1;
+  if (state.winner === "white") state.stats.whiteWins += 1;
+  if (state.winner === "black") state.stats.blackWins += 1;
+  if (!state.winner) state.stats.draws += 1;
+  state.stats._updatedForCurrentGame = true;
+  const { _updatedForCurrentGame, ...persistable } = state.stats;
+  localStorage.setItem(STATS_KEY, JSON.stringify(persistable));
+}
+
+function readSettingsForm() {
+  const formData = new FormData(elements.startForm);
+  return {
+    whiteName: cleanName(formData.get("whiteName"), "White"),
+    blackName: cleanName(formData.get("blackName"), "Black"),
+    intensity: String(formData.get("intensity") || "standard"),
+    timer: String(formData.get("timer") || "unlimited"),
+  };
+}
+
 function applyStoredSettings() {
   const settings = loadJson(STORAGE_KEY, null);
   if (!settings) return;
@@ -163,6 +321,7 @@ function applyStoredSettings() {
   elements.blackNameInput.value = settings.blackName || "Black";
   setRadio("intensity", settings.intensity || "standard");
   setRadio("timer", settings.timer || "unlimited");
+  state = createInitialState({ ...settings, stats: loadStats() });
 }
 
 function setRadio(name, value) {

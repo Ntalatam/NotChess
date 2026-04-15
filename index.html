@@ -32,6 +32,15 @@
             ></canvas>
             <div class="board-vignette" aria-hidden="true"></div>
             <div class="announcement" id="announcement" aria-live="polite"></div>
+            <div class="promotion-popover" id="promotionOverlay" hidden>
+              <p>Promote</p>
+              <div class="promotion-options">
+                <button type="button" data-piece="q" aria-label="Promote to queen">♕</button>
+                <button type="button" data-piece="r" aria-label="Promote to rook">♖</button>
+                <button type="button" data-piece="b" aria-label="Promote to bishop">♗</button>
+                <button type="button" data-piece="n" aria-label="Promote to knight">♘</button>
+              </div>
+            </div>
           </div>
 
           <div class="hand-row hand-row--player" id="whiteHand" aria-label="White hand"></div>

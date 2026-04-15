@@ -241,6 +241,7 @@ button {
     0 0 0 8px rgba(42, 37, 64, 0.48),
     0 0 70px rgba(0, 229, 255, 0.1),
     var(--shadow-heavy);
+  cursor: pointer;
 }
 
 .board-vignette {
@@ -283,6 +284,51 @@ button {
 
 .announcement[data-tone="critical"] {
   border-color: rgba(255, 59, 92, 0.72);
+}
+
+.promotion-popover {
+  position: absolute;
+  left: 50%;
+  bottom: 28px;
+  z-index: 4;
+  min-width: 280px;
+  padding: 12px;
+  border: 1px solid rgba(240, 192, 64, 0.68);
+  border-radius: var(--radius);
+  background: rgba(8, 10, 16, 0.92);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.44);
+  text-align: center;
+  transform: translateX(-50%);
+}
+
+.promotion-popover p {
+  margin: 0 0 8px;
+  color: var(--accent-gold);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.promotion-options {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.promotion-options button {
+  min-height: 52px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.06);
+  font-size: 30px;
+}
+
+.promotion-options button:hover,
+.promotion-options button:focus-visible {
+  border-color: var(--accent-cyan);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(0, 229, 255, 0.15);
 }
 
 .sidebar {
@@ -428,6 +474,63 @@ button {
   place-items: center;
   overflow: hidden;
   background: rgba(4, 5, 8, 0.72);
+}
+
+.end-overlay {
+  z-index: 30;
+  padding: 36px;
+}
+
+.end-panel {
+  width: min(560px, calc(100vw - 96px));
+  padding: 26px;
+  border: 1px solid rgba(240, 192, 64, 0.54);
+  border-radius: var(--radius);
+  background: rgba(12, 14, 22, 0.92);
+  box-shadow: var(--shadow-heavy);
+  text-align: center;
+}
+
+.end-panel h2 {
+  margin: 0 0 10px;
+  font-family: "Cinzel", Georgia, serif;
+  font-size: 42px;
+}
+
+.end-panel p {
+  margin: 0 0 16px;
+  color: var(--text-soft);
+}
+
+.end-summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.end-summary span {
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius);
+  color: var(--text-dim);
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 12px;
+}
+
+.end-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.secondary-action {
+  min-height: 46px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.06);
+  font-weight: 700;
 }
 
 .menu-hero {

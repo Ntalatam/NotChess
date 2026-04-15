@@ -14,6 +14,32 @@ export function renderShell(state, elements) {
   renderStats(elements.statsStrip, state.stats);
 }
 
+export function renderEndOverlay(container, state) {
+  if (!state.gameOver) {
+    container.hidden = true;
+    container.innerHTML = "";
+    return;
+  }
+
+  const title = state.winner ? `${capitalize(state.winner)} wins` : "Draw";
+  container.hidden = false;
+  container.innerHTML = `
+    <section class="end-panel">
+      <h2>${escapeHtml(title)}</h2>
+      <p>${escapeHtml(state.gameOverReason)}</p>
+      <div class="end-summary">
+        <span>Turn ${state.turnCount}</span>
+        <span>${state.capturedPieces.white.length + state.capturedPieces.black.length} captures</span>
+        <span>${state.chaosEvents.length} chaos events</span>
+      </div>
+      <div class="end-actions">
+        <button class="primary-action" type="button" data-end-action="restart">Play Again</button>
+        <button class="secondary-action" type="button" data-end-action="menu">Main Menu</button>
+      </div>
+    </section>
+  `;
+}
+
 export function showAnnouncement(elements, message, tone = "info") {
   elements.announcement.textContent = message;
   elements.announcement.dataset.tone = tone;
