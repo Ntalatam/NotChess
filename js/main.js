@@ -1,3 +1,4 @@
+import { initAudioToggle, playTone } from "./audio.js";
 import { createBoardMetrics, drawBoard, pointToSquare } from "./board.js";
 import {
   canPlayCard,
@@ -50,6 +51,9 @@ const elements = {
   statsStrip: document.querySelector("#statsStrip"),
   promotionOverlay: document.querySelector("#promotionOverlay"),
   mutationTooltip: document.querySelector("#mutationTooltip"),
+  majorChaosOverlay: document.querySelector("#majorChaosOverlay"),
+  majorChaosName: document.querySelector("#majorChaosName"),
+  soundToggle: document.querySelector("#soundToggle"),
   endOverlay: document.querySelector("#endOverlay"),
 };
 
@@ -60,6 +64,7 @@ let frame = 0;
 function init() {
   applyStoredSettings();
   bindEvents();
+  initAudioToggle(elements.soundToggle);
   resizeBoard();
   render();
   requestAnimationFrame(tick);
@@ -84,7 +89,7 @@ function handleStart(event) {
   persistSettings(settings);
   state = createInitialState({ ...settings, stats: loadStats() });
   setupChaosDeck(state);
-  startTurn(state);
+  handleMajorChaos(startTurn(state));
   state.status = `${settings.intensity} chaos`;
   state.log = [`${settings.whiteName} and ${settings.blackName} begin.`];
 
@@ -187,7 +192,10 @@ function handleCardClick(event) {
 
   if (targetCount === 0) {
     const result = playCard(state, color, handIndex, []);
-    if (result) showAnnouncement(elements, `${result.definition.name} played`, "warning");
+    if (result) {
+      showAnnouncement(elements, `${result.definition.name} played`, "warning");
+      playTone("card");
+    }
     render();
     return;
   }
@@ -220,7 +228,10 @@ function handleTargetingClick(square) {
   }
 
   const result = playCard(state, state.targeting.color, state.targeting.handIndex, state.targeting.targets);
-  if (result) showAnnouncement(elements, `${result.definition.name} played`, "warning");
+  if (result) {
+    showAnnouncement(elements, `${result.definition.name} played`, "warning");
+    playTone("card");
+  }
   state.targeting = null;
   state.targetSquares = [];
   render();
@@ -303,18 +314,24 @@ function commitMove(from, to, promotion = undefined) {
     showAnnouncement(elements, "Shield broke the capture", "warning");
   } else if (result.gainedMutation) {
     showAnnouncement(elements, `${result.gainedMutation.name} mutation gained`, "warning");
+    playTone("mutation");
+  } else if (result.captured) {
+    playTone("capture");
+  } else {
+    playTone("move");
   }
 
   if (state.gameOver) {
     updateStatsForGameOver();
     showAnnouncement(elements, state.gameOverReason, state.winner ? "critical" : "warning");
+    playTone("end");
   } else if (state.check) {
     showAnnouncement(elements, "Check", "critical");
   }
 
   render();
   if (state.turn !== previousTurn && !state.gameOver) {
-    startTurn(state);
+    handleMajorChaos(startTurn(state));
     render();
   }
 
@@ -334,7 +351,7 @@ function restartMatch(showMenu) {
   const settings = readSettingsForm();
   state = createInitialState({ ...settings, stats: loadStats() });
   setupChaosDeck(state);
-  if (!showMenu) startTurn(state);
+  if (!showMenu) handleMajorChaos(startTurn(state));
   elements.endOverlay.hidden = true;
   elements.endOverlay.innerHTML = "";
   elements.menuOverlay.hidden = !showMenu;
@@ -422,9 +439,22 @@ function updateStatsForGameOver() {
   if (state.winner === "white") state.stats.whiteWins += 1;
   if (state.winner === "black") state.stats.blackWins += 1;
   if (!state.winner) state.stats.draws += 1;
+  state.stats.chaosSurvived += state.majorChaosCount;
+  state.stats.mostMutations = Math.max(state.stats.mostMutations, state.mutationStats.mostOnPiece);
   state.stats._updatedForCurrentGame = true;
   const { _updatedForCurrentGame, ...persistable } = state.stats;
   localStorage.setItem(STATS_KEY, JSON.stringify(persistable));
+}
+
+function handleMajorChaos(event) {
+  if (!event) return;
+  elements.majorChaosName.textContent = event.name;
+  elements.majorChaosOverlay.hidden = false;
+  playTone("chaos");
+  window.clearTimeout(handleMajorChaos.timer);
+  handleMajorChaos.timer = window.setTimeout(() => {
+    elements.majorChaosOverlay.hidden = true;
+  }, 1500);
 }
 
 function readSettingsForm() {

@@ -31,8 +31,8 @@ export function renderEndOverlay(container, state) {
       <p>${escapeHtml(state.gameOverReason)}</p>
       <div class="end-summary">
         <span>Turn ${state.turnCount}</span>
-        <span>${state.capturedPieces.white.length + state.capturedPieces.black.length} captures</span>
-        <span>${state.chaosEvents.length} chaos events</span>
+        <span>${state.majorChaosCount} major chaos</span>
+        <span>${state.cardsPlayed} cards played</span>
       </div>
       <div class="end-actions">
         <button class="primary-action" type="button" data-end-action="restart">Play Again</button>

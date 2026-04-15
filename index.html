@@ -32,6 +32,10 @@
             ></canvas>
             <div class="board-vignette" aria-hidden="true"></div>
             <div class="announcement" id="announcement" aria-live="polite"></div>
+            <div class="major-chaos" id="majorChaosOverlay" hidden>
+              <p>Major Chaos</p>
+              <strong id="majorChaosName">The Great Scramble</strong>
+            </div>
             <div class="mutation-tooltip" id="mutationTooltip" role="tooltip" hidden></div>
             <div class="promotion-popover" id="promotionOverlay" hidden>
               <p>Promote</p>
@@ -53,6 +57,7 @@
             <p class="section-kicker">Turn</p>
             <h2 id="turnStatus">Turn 1 - White</h2>
             <p id="roundStatus">Local duel</p>
+            <button class="sound-toggle" type="button" id="soundToggle" aria-pressed="true">SFX On</button>
           </div>
 
           <div class="sidebar-section">

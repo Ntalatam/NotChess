@@ -67,6 +67,9 @@ export function createInitialState(settings = {}, rng = Math.random) {
     chaosEvents: [],
     activeEvents: [],
     chaosMeter: 0,
+    majorChaosCount: 0,
+    lastMajorChaos: null,
+    cardsPlayed: 0,
     deck: {
       cards: [],
       discard: [],

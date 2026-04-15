@@ -264,6 +264,13 @@ export function startTurn(state) {
   state.turnActions.cardPlayed = false;
   drawCard(state, state.turn);
   tickFrozenPieces(state, state.turn);
+  tickChaosEvents(state);
+  state.chaosMeter += chaosGain(state);
+  if (state.chaosMeter >= 100) {
+    state.chaosMeter = 0;
+    return triggerMajorChaos(state);
+  }
+  return null;
 }
 
 export function drawCard(state, color) {
@@ -304,6 +311,7 @@ export function playCard(state, color, handIndex, targets = []) {
   state.hands[color].splice(handIndex, 1);
   state.deck.discard.push(card);
   state.turnActions.cardPlayed = true;
+  state.cardsPlayed += 1;
   definition.resolve(state, color, targets);
   syncChessToBoard(state, state.turn);
   updateGameStatus(state);
@@ -318,6 +326,120 @@ export function getCardDefinition(card) {
 
 export function getTargetCount(card) {
   return CARD_DEFINITIONS[card.id].target?.count || 0;
+}
+
+export const MAJOR_CHAOS_EVENTS = [
+  {
+    id: "BOARD_SCRAMBLE",
+    name: "The Great Scramble",
+    resolve: (state) => {
+      const kings = allPieces(state).filter(({ piece }) => piece.type === "k");
+      const movers = allPieces(state).filter(({ piece }) => piece.type !== "k").map(({ piece }) => piece);
+      state.board = Array.from({ length: 8 }, () => Array(8).fill(null));
+      for (const king of kings) state.board[king.row][king.col] = king.piece;
+      const squares = shuffled(emptySquares(state), state.rng);
+      movers.forEach((piece, index) => {
+        const square = squares[index];
+        if (square) state.board[square.row][square.col] = piece;
+      });
+    },
+  },
+  {
+    id: "PIECE_SWAP",
+    name: "The Allegiance Flip",
+    resolve: (state) => {
+      for (const { piece } of allPieces(state)) piece.color = oppositeColor(piece.color);
+    },
+  },
+  {
+    id: "MUTATION_CASCADE",
+    name: "Mutation Cascade",
+    resolve: (state) => {
+      for (const { piece } of allPieces(state)) grantRandomMutation(state, piece);
+    },
+  },
+  {
+    id: "TILE_STORM",
+    name: "Tile Storm",
+    resolve: (state) => {
+      const tileTypes = ["LAVA", "ICE", "VOID", "AMPLIFIER", "SWAP_ZONE", "GHOST_TILE", "MINEFIELD"];
+      for (let index = 0; index < 3; index += 1) {
+        const square = randomEmptySquare(state);
+        if (square) spawnSpecialTile(state, tileTypes[Math.floor(state.rng() * tileTypes.length)], square.row, square.col);
+      }
+    },
+  },
+  {
+    id: "PAWN_UPRISING",
+    name: "The Pawn Uprising",
+    resolve: (state) => {
+      for (const { piece } of allPieces(state)) {
+        if (piece.type === "p") {
+          piece.type = "q";
+          piece.promoted = true;
+        }
+      }
+    },
+  },
+  {
+    id: "MIRROR_GAME",
+    name: "Mirror Game",
+    resolve: (state) => {
+      state.board = state.board.map((row) => [...row].reverse());
+    },
+  },
+  {
+    id: "DARK_HORSE",
+    name: "Dark Horse",
+    resolve: (state) => {
+      for (let index = 0; index < 2; index += 1) {
+        const square = randomEmptySquare(state);
+        if (square) spawnSpecialTile(state, "GHOST_TILE", square.row, square.col, { turnsLeft: 4 });
+      }
+    },
+  },
+  {
+    id: "HANDS_RESET",
+    name: "Hands Reset",
+    resolve: (state) => {
+      state.deck.discard.push(...state.hands.white, ...state.hands.black);
+      state.hands.white = [];
+      state.hands.black = [];
+      for (let index = 0; index < 4; index += 1) {
+        drawCard(state, "white");
+        drawCard(state, "black");
+      }
+    },
+  },
+  {
+    id: "PIECE_DESTRUCTION",
+    name: "Piece Destruction",
+    resolve: (state) => {
+      const targets = shuffled(allPieces(state).filter(({ piece }) => piece.type !== "k"), state.rng).slice(0, 3);
+      for (const target of targets) state.board[target.row][target.col] = null;
+    },
+  },
+  {
+    id: "RULE_INVERSION",
+    name: "Rule Inversion",
+    resolve: (state) => addChaosEvent(state, "RULE_INVERSION", "Rule Inversion", 6),
+  },
+];
+
+export function triggerMajorChaos(state) {
+  const event = MAJOR_CHAOS_EVENTS[Math.floor(state.rng() * MAJOR_CHAOS_EVENTS.length)];
+  event.resolve(state);
+  state.majorChaosCount += 1;
+  state.lastMajorChaos = {
+    id: event.id,
+    name: event.name,
+    firedAt: Date.now(),
+  };
+  syncChessToBoard(state, state.turn);
+  updateDeckCounts(state);
+  updateGameStatus(state);
+  addLog(state, `MAJOR CHAOS: ${event.name}.`);
+  return state.lastMajorChaos;
 }
 
 function createCard(id) {
@@ -371,6 +493,17 @@ function rebelMove(state, color, target) {
 
 function addChaosEvent(state, type, name, turnsLeft) {
   state.chaosEvents.push({ type, name, turnsLeft });
+}
+
+function tickChaosEvents(state) {
+  for (const event of state.chaosEvents) event.turnsLeft -= 1;
+  state.chaosEvents = state.chaosEvents.filter((event) => event.turnsLeft > 0);
+}
+
+function chaosGain(state) {
+  if (state.settings.intensity === "mild") return 7;
+  if (state.settings.intensity === "unhinged") return 15;
+  return 10;
 }
 
 function updateDeckCounts(state) {
