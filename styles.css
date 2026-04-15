@@ -864,6 +864,26 @@ button {
   box-shadow: 0 0 0 3px rgba(0, 229, 255, 0.14);
 }
 
+.switch-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  margin-top: 14px;
+  padding: 10px 12px;
+  border: 1px solid rgba(0, 229, 255, 0.18);
+  border-radius: var(--radius);
+  color: var(--text-soft);
+  background: rgba(0, 229, 255, 0.055);
+  font-weight: 700;
+}
+
+.switch-field input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent-cyan);
+}
+
 .segmented {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

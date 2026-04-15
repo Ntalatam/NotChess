@@ -30,6 +30,7 @@ export function createInitialState(settings = {}, rng = Math.random) {
     settings: {
       intensity: settings.intensity || "standard",
       timer: settings.timer || "unlimited",
+      aiOpponent: Boolean(settings.aiOpponent),
     },
     turn: "white",
     turnCount: 1,
@@ -92,7 +93,7 @@ export function createInitialState(settings = {}, rng = Math.random) {
         clock: timerLabel,
       },
       black: {
-        name: settings.blackName || "Black",
+        name: settings.aiOpponent ? "Wacko AI" : settings.blackName || "Black",
         captured: 0,
         mutations: 0,
         frozen: 0,

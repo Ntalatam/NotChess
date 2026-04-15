@@ -11,7 +11,7 @@ export function renderShell(state, elements) {
   renderHud(elements.whiteHud, state.players.white, "white", state.turn === "white");
   renderHud(elements.blackHud, state.players.black, "black", state.turn === "black");
   renderHands(elements.whiteHand, state.hands.white, state.turn !== "white", "white", state);
-  renderHands(elements.blackHand, state.hands.black, state.turn !== "black", "black", state);
+  renderHands(elements.blackHand, state.hands.black, state.settings.aiOpponent || state.turn !== "black", "black", state);
   renderSidebar(state, elements);
   renderStats(elements.statsStrip, state.stats);
 }

@@ -1,4 +1,5 @@
 import { initAudioToggle, playTone } from "./audio.js";
+import { chooseAiCardPlay, chooseAiMove } from "./ai.js";
 import { createBoardMetrics, drawBoard, pointToSquare } from "./board.js";
 import {
   canPlayCard,
@@ -36,6 +37,7 @@ const elements = {
   startForm: document.querySelector("#startForm"),
   whiteNameInput: document.querySelector("#whiteNameInput"),
   blackNameInput: document.querySelector("#blackNameInput"),
+  aiOpponentInput: document.querySelector("#aiOpponentInput"),
   whiteHud: document.querySelector("#whiteHud"),
   blackHud: document.querySelector("#blackHud"),
   whiteHand: document.querySelector("#whiteHand"),
@@ -61,6 +63,7 @@ const elements = {
 let state = createInitialState({ stats: loadStats() });
 let boardMetrics;
 let frame = 0;
+let aiTimer = null;
 
 function init() {
   applyStoredSettings();
@@ -74,6 +77,7 @@ function init() {
 function bindEvents() {
   window.addEventListener("resize", resizeBoard);
   elements.startForm.addEventListener("submit", handleStart);
+  elements.aiOpponentInput.addEventListener("change", updateAiNameState);
   elements.boardCanvas.addEventListener("click", handleBoardClick);
   elements.boardCanvas.addEventListener("mousemove", handleBoardMouseMove);
   elements.boardCanvas.addEventListener("mouseleave", hideMutationTooltip);
@@ -91,9 +95,9 @@ function handleStart(event) {
   persistSettings(settings);
   state = createInitialState({ ...settings, stats: loadStats() });
   setupChaosDeck(state);
-  handleMajorChaos(startTurn(state));
   state.status = `${settings.intensity} chaos`;
   state.log = [`${settings.whiteName} and ${settings.blackName} begin.`];
+  beginTurn();
 
   elements.menuOverlay.hidden = true;
   elements.endOverlay.hidden = true;
@@ -104,6 +108,10 @@ function handleStart(event) {
 
 function handleBoardClick(event) {
   if (state.gameOver || !elements.menuOverlay.hidden || !elements.promotionOverlay.hidden) return;
+  if (isAiTurn()) {
+    showAnnouncement(elements, "Wacko AI is thinking", "warning");
+    return;
+  }
 
   const rect = elements.boardCanvas.getBoundingClientRect();
   const square = pointToSquare(boardMetrics, event.clientX - rect.left, event.clientY - rect.top);
@@ -181,6 +189,10 @@ function hideMutationTooltip() {
 function handleCardClick(event) {
   const cardButton = event.target.closest(".chaos-card--button[data-hand-index]");
   if (!cardButton) return;
+  if (isAiTurn()) {
+    showAnnouncement(elements, "Wacko AI is thinking", "warning");
+    return;
+  }
   const color = cardButton.dataset.cardColor;
   const handIndex = Number(cardButton.dataset.handIndex);
 
@@ -345,8 +357,9 @@ function commitMove(from, to, promotion = undefined) {
 
   render();
   if (state.turn !== previousTurn && !state.gameOver) {
-    handleMajorChaos(startTurn(state));
-    render();
+    beginTurn();
+  } else if (isAiTurn() && !state.gameOver) {
+    maybeQueueAiTurn();
   }
 
   window.setTimeout(() => {
@@ -362,10 +375,11 @@ function renderPromotionChoices(choices) {
 }
 
 function restartMatch(showMenu) {
+  window.clearTimeout(aiTimer);
   const settings = readSettingsForm();
   state = createInitialState({ ...settings, stats: loadStats() });
   setupChaosDeck(state);
-  if (!showMenu) handleMajorChaos(startTurn(state));
+  if (!showMenu) beginTurn();
   elements.endOverlay.hidden = true;
   elements.endOverlay.innerHTML = "";
   elements.menuOverlay.hidden = !showMenu;
@@ -377,6 +391,17 @@ function render() {
   syncHudStats(state);
   renderShell(state, elements);
   renderEndOverlay(elements.endOverlay, state);
+}
+
+function beginTurn() {
+  handleMajorChaos(startTurn(state));
+  state.status = state.settings.aiOpponent
+    ? state.turn === "black"
+      ? "Wacko AI thinking"
+      : "Your move"
+    : `${state.settings.intensity} chaos`;
+  render();
+  maybeQueueAiTurn();
 }
 
 function resizeBoard() {
@@ -471,11 +496,65 @@ function handleMajorChaos(event) {
   }, 1500);
 }
 
+function maybeQueueAiTurn() {
+  window.clearTimeout(aiTimer);
+  if (!isAiTurn() || state.gameOver || !elements.menuOverlay.hidden) return;
+  state.status = "Wacko AI thinking";
+  render();
+  aiTimer = window.setTimeout(runAiTurn, 650);
+}
+
+function runAiTurn() {
+  if (!isAiTurn() || state.gameOver) return;
+
+  const cardPlay = chooseAiCardPlay(state, "black");
+  if (cardPlay) {
+    const result = playCard(state, "black", cardPlay.handIndex, cardPlay.targets);
+    if (result) {
+      showAnnouncement(elements, `AI played ${result.definition.name}`, "warning");
+      playTone("card");
+      render();
+    }
+  }
+
+  if (state.gameOver) {
+    updateStatsForGameOver();
+    render();
+    return;
+  }
+
+  const move = chooseAiMove(state, "black");
+  if (!move) {
+    showAnnouncement(elements, "Wacko AI has no legal move", "critical");
+    return;
+  }
+
+  commitMove(move.from, move.to, move.promotion);
+}
+
+function isAiTurn() {
+  return Boolean(state.settings.aiOpponent && state.turn === "black");
+}
+
+function updateAiNameState() {
+  if (elements.aiOpponentInput.checked) {
+    elements.blackNameInput.value = "Wacko AI";
+    elements.blackNameInput.disabled = true;
+  } else {
+    elements.blackNameInput.disabled = false;
+    if (elements.blackNameInput.value === "Wacko AI") {
+      elements.blackNameInput.value = "Black";
+    }
+  }
+}
+
 function readSettingsForm() {
   const formData = new FormData(elements.startForm);
+  const aiOpponent = formData.get("aiOpponent") === "on";
   return {
     whiteName: cleanName(formData.get("whiteName"), "White"),
-    blackName: cleanName(formData.get("blackName"), "Black"),
+    blackName: aiOpponent ? "Wacko AI" : cleanName(formData.get("blackName"), "Black"),
+    aiOpponent,
     intensity: String(formData.get("intensity") || "standard"),
     timer: String(formData.get("timer") || "unlimited"),
   };
@@ -487,6 +566,8 @@ function applyStoredSettings() {
 
   elements.whiteNameInput.value = settings.whiteName || "White";
   elements.blackNameInput.value = settings.blackName || "Black";
+  elements.aiOpponentInput.checked = Boolean(settings.aiOpponent);
+  updateAiNameState();
   setRadio("intensity", settings.intensity || "standard");
   setRadio("timer", settings.timer || "unlimited");
   state = createInitialState({ ...settings, stats: loadStats() });
