@@ -1,4 +1,13 @@
 import { createBoardMetrics, drawBoard, pointToSquare } from "./board.js";
+import {
+  canPlayCard,
+  getCardDefinition,
+  getCardTargetSquares,
+  getTargetCount,
+  playCard,
+  setupChaosDeck,
+  startTurn,
+} from "./chaos.js";
 import { drawPieces, getPieceAt } from "./pieces.js";
 import {
   describeMutations,
@@ -63,6 +72,8 @@ function bindEvents() {
   elements.boardCanvas.addEventListener("mousemove", handleBoardMouseMove);
   elements.boardCanvas.addEventListener("mouseleave", hideMutationTooltip);
   elements.promotionOverlay.addEventListener("click", handlePromotionClick);
+  elements.whiteHand.addEventListener("click", handleCardClick);
+  elements.blackHand.addEventListener("click", handleCardClick);
   elements.endOverlay.addEventListener("click", handleEndClick);
   window.addEventListener("keydown", handleKeydown);
 }
@@ -72,6 +83,8 @@ function handleStart(event) {
   const settings = readSettingsForm();
   persistSettings(settings);
   state = createInitialState({ ...settings, stats: loadStats() });
+  setupChaosDeck(state);
+  startTurn(state);
   state.status = `${settings.intensity} chaos`;
   state.log = [`${settings.whiteName} and ${settings.blackName} begin.`];
 
@@ -89,6 +102,11 @@ function handleBoardClick(event) {
   const square = pointToSquare(boardMetrics, event.clientX - rect.left, event.clientY - rect.top);
   if (!square) {
     clearSelection();
+    return;
+  }
+
+  if (state.targeting) {
+    handleTargetingClick(square);
     return;
   }
 
@@ -153,6 +171,61 @@ function hideMutationTooltip() {
   elements.mutationTooltip.hidden = true;
 }
 
+function handleCardClick(event) {
+  const cardButton = event.target.closest(".chaos-card--button[data-hand-index]");
+  if (!cardButton) return;
+  const color = cardButton.dataset.cardColor;
+  const handIndex = Number(cardButton.dataset.handIndex);
+
+  if (!canPlayCard(state, color, handIndex)) {
+    showAnnouncement(elements, "Card cannot be played", "critical");
+    return;
+  }
+
+  const card = state.hands[color][handIndex];
+  const targetCount = getTargetCount(card);
+
+  if (targetCount === 0) {
+    const result = playCard(state, color, handIndex, []);
+    if (result) showAnnouncement(elements, `${result.definition.name} played`, "warning");
+    render();
+    return;
+  }
+
+  state.targeting = {
+    color,
+    handIndex,
+    targets: [],
+  };
+  state.targetSquares = getCardTargetSquares(state, color, handIndex, []);
+  showAnnouncement(elements, `${getCardDefinition(card).name}: choose target`, "warning");
+  render();
+}
+
+function handleTargetingClick(square) {
+  const valid = state.targetSquares.some((target) => target.row === square.row && target.col === square.col);
+  if (!valid) {
+    showAnnouncement(elements, "Invalid target", "critical");
+    return;
+  }
+
+  state.targeting.targets.push(square);
+  const card = state.hands[state.targeting.color][state.targeting.handIndex];
+  const targetCount = getTargetCount(card);
+
+  if (state.targeting.targets.length < targetCount) {
+    state.targetSquares = getCardTargetSquares(state, state.targeting.color, state.targeting.handIndex, state.targeting.targets);
+    showAnnouncement(elements, `Choose target ${state.targeting.targets.length + 1}`, "warning");
+    return;
+  }
+
+  const result = playCard(state, state.targeting.color, state.targeting.handIndex, state.targeting.targets);
+  if (result) showAnnouncement(elements, `${result.definition.name} played`, "warning");
+  state.targeting = null;
+  state.targetSquares = [];
+  render();
+}
+
 function handlePromotionClick(event) {
   const button = event.target.closest("button[data-piece]");
   if (!button || !state.pendingPromotion) return;
@@ -178,6 +251,7 @@ function handleEndClick(event) {
 function handleKeydown(event) {
   if (event.key !== "Escape") return;
   elements.promotionOverlay.hidden = true;
+  state.targeting = null;
   state.pendingPromotion = null;
   clearSelection();
 }
@@ -199,6 +273,7 @@ function clearSelection() {
 }
 
 function commitMove(from, to, promotion = undefined) {
+  const previousTurn = state.turn;
   const result = requestMove(state, from, to, promotion);
   if (!result) {
     showAnnouncement(elements, "Illegal move", "critical");
@@ -238,6 +313,10 @@ function commitMove(from, to, promotion = undefined) {
   }
 
   render();
+  if (state.turn !== previousTurn && !state.gameOver) {
+    startTurn(state);
+    render();
+  }
 
   window.setTimeout(() => {
     state.animation = null;
@@ -254,6 +333,8 @@ function renderPromotionChoices(choices) {
 function restartMatch(showMenu) {
   const settings = readSettingsForm();
   state = createInitialState({ ...settings, stats: loadStats() });
+  setupChaosDeck(state);
+  if (!showMenu) startTurn(state);
   elements.endOverlay.hidden = true;
   elements.endOverlay.innerHTML = "";
   elements.menuOverlay.hidden = !showMenu;

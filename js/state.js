@@ -54,12 +54,22 @@ export function createInitialState(settings = {}, rng = Math.random) {
       white: [],
       black: [],
     },
+    turnActions: {
+      cardPlayed: false,
+    },
+    targeting: null,
+    extraMoves: {
+      white: 0,
+      black: 0,
+    },
     specialTiles: [],
     swapZoneEntries: {},
     chaosEvents: [],
     activeEvents: [],
     chaosMeter: 0,
     deck: {
+      cards: [],
+      discard: [],
       remaining: 40,
       discarded: 0,
     },

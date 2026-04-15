@@ -1,3 +1,5 @@
+import { CARD_DEFINITIONS } from "./chaos.js";
+
 const CARD_STUBS = [
   ["Buff", "Mutation Injection", "Something sharp wakes up."],
   ["Wild", "Swap & Pray", "The board blinks first."],
@@ -8,8 +10,8 @@ const CARD_STUBS = [
 export function renderShell(state, elements) {
   renderHud(elements.whiteHud, state.players.white, "white", state.turn === "white");
   renderHud(elements.blackHud, state.players.black, "black", state.turn === "black");
-  renderHands(elements.whiteHand, state.hands.white, false);
-  renderHands(elements.blackHand, state.hands.black, true);
+  renderHands(elements.whiteHand, state.hands.white, state.turn !== "white", "white", state);
+  renderHands(elements.blackHand, state.hands.black, state.turn !== "black", "black", state);
   renderSidebar(state, elements);
   renderStats(elements.statsStrip, state.stats);
 }
@@ -64,11 +66,15 @@ function renderHud(container, player, color, active) {
   container.dataset.color = color;
 }
 
-function renderHands(container, hand, hidden) {
+function renderHands(container, hand, hidden, color, state) {
   const cards = hand.length ? hand : CARD_STUBS;
   container.innerHTML = cards
     .slice(0, 4)
-    .map(([category, name, flavor]) => {
+    .map((card, index) => {
+      const definition = Array.isArray(card)
+        ? { category: card[0], name: card[1], flavor: card[2], text: card[2] }
+        : CARD_DEFINITIONS[card.id];
+
       if (hidden) {
         return `
           <article class="chaos-card chaos-card--back" aria-label="Hidden chaos card">
@@ -80,11 +86,12 @@ function renderHands(container, hand, hidden) {
       }
 
       return `
-        <article class="chaos-card" tabindex="0">
-          <span class="chaos-card__tag">${escapeHtml(category)}</span>
-          <h3>${escapeHtml(name)}</h3>
-          <p>${escapeHtml(flavor)}</p>
-        </article>
+        <button class="chaos-card chaos-card--button" type="button" data-card-color="${color}" data-hand-index="${index}" ${state.turnActions.cardPlayed ? "disabled" : ""}>
+          <span class="chaos-card__tag">${escapeHtml(definition.category)}</span>
+          <h3>${escapeHtml(definition.name)}</h3>
+          <p>${escapeHtml(definition.text)}</p>
+          <em>${escapeHtml(definition.flavor)}</em>
+        </button>
       `;
     })
     .join("");
@@ -98,8 +105,13 @@ function renderSidebar(state, elements) {
   elements.chaosMeterFill.parentElement.setAttribute("aria-valuenow", String(state.chaosMeter));
   elements.deckStatus.textContent = `${state.deck.remaining} / ${state.deck.discarded}`;
 
-  elements.activeEvents.innerHTML = state.activeEvents.length
-    ? state.activeEvents.map((event) => `<li>${escapeHtml(event)}</li>`).join("")
+  const activeEvents = [
+    ...state.chaosEvents.map((event) => `${event.name} (${event.turnsLeft})`),
+    ...state.specialTiles.map((tile) => `${tile.type.replaceAll("_", " ")} (${tile.turnsLeft ?? "armed"})`),
+  ];
+
+  elements.activeEvents.innerHTML = activeEvents.length
+    ? activeEvents.map((event) => `<li>${escapeHtml(event)}</li>`).join("")
     : `<li>No active chaos events.</li>`;
 
   elements.eventLog.innerHTML = state.log

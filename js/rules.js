@@ -86,6 +86,7 @@ export function getLegalMoves(state, pieceId) {
   if (!position) return [];
   const piece = getPieceAt(state.board, position.row, position.col);
   if (!piece || piece.color !== state.turn || state.gameOver) return [];
+  if (piece.frozenTurns > 0) return [];
 
   const square = squareToNotation(position.row, position.col);
   const baselineMoves = state.chess
@@ -332,6 +333,7 @@ function activateClone(state, piece, from, to) {
 }
 
 function afterSuccessfulMove(state, boardResult, san, allowMutation = true) {
+  const actingColor = state.turn;
   if (boardResult.captured) {
     resolveCapturedMutationHooks(state, boardResult);
     if (allowMutation && state.rng() < CONFIG.mutationChance) {
@@ -344,7 +346,14 @@ function afterSuccessfulMove(state, boardResult, san, allowMutation = true) {
   }
 
   resolvePostMoveTiles(state, boardResult);
-  state.turn = CHESS_TO_APP_COLOR[state.chess.turn()];
+  let nextTurn = CHESS_TO_APP_COLOR[state.chess.turn()];
+  if (!state.gameOver && state.extraMoves[actingColor] > 0) {
+    state.extraMoves[actingColor] -= 1;
+    nextTurn = actingColor;
+    syncChessToBoard(state, actingColor);
+    addLog(state, `${capitalize(actingColor)} bends time for another move.`);
+  }
+  state.turn = nextTurn;
   state.turnCount = state.chess.moveNumber();
   state.selected = null;
   state.validMoves = [];
