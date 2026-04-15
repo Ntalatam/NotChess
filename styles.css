@@ -491,6 +491,19 @@ button {
   font-weight: 700;
 }
 
+.help-toggle {
+  min-height: 34px;
+  margin-top: 10px;
+  margin-right: 8px;
+  padding: 6px 10px;
+  border: 1px solid rgba(0, 229, 255, 0.22);
+  border-radius: var(--radius);
+  color: var(--accent-cyan);
+  background: rgba(0, 229, 255, 0.07);
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .section-heading {
   display: flex;
   align-items: baseline;
@@ -603,6 +616,104 @@ button {
   padding: 36px;
 }
 
+.help-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 34px;
+  background: rgba(4, 5, 8, 0.74);
+  backdrop-filter: blur(8px);
+}
+
+.help-panel {
+  width: min(880px, calc(100vw - 92px));
+  max-height: calc(100vh - 68px);
+  overflow: auto;
+  padding: 24px;
+  border: 1px solid rgba(240, 192, 64, 0.42);
+  border-radius: var(--radius);
+  background: rgba(12, 14, 22, 0.94);
+  box-shadow: var(--shadow-heavy);
+}
+
+.help-heading {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px 16px;
+  align-items: start;
+  margin-bottom: 18px;
+}
+
+.help-heading .eyebrow {
+  grid-column: 1;
+}
+
+.help-heading h2 {
+  grid-column: 1;
+  margin: 0;
+  font-family: "Cinzel", Georgia, serif;
+  font-size: 42px;
+}
+
+.icon-button {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  width: 42px;
+  height: 42px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 50%;
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.06);
+  font-size: 28px;
+  line-height: 1;
+}
+
+.help-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.help-card {
+  position: relative;
+  min-height: 138px;
+  padding: 16px 16px 16px 54px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(135deg, rgba(0, 229, 255, 0.07), transparent 58%),
+    rgba(255, 255, 255, 0.04);
+}
+
+.help-card span {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  color: #071014;
+  background: var(--accent-gold);
+  font-weight: 700;
+}
+
+.help-card h3 {
+  margin: 0 0 8px;
+  font-family: "Cinzel", Georgia, serif;
+  font-size: 18px;
+}
+
+.help-card p {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
 .end-panel {
   width: min(560px, calc(100vw - 96px));
   padding: 26px;
@@ -695,6 +806,26 @@ button {
   text-shadow:
     0 0 18px rgba(240, 192, 64, 0.38),
     0 0 34px rgba(0, 229, 255, 0.2);
+}
+
+.rules-link {
+  min-height: 38px;
+  margin: -8px 0 20px;
+  padding: 8px 12px;
+  border: 1px solid rgba(0, 229, 255, 0.28);
+  border-radius: var(--radius);
+  color: var(--accent-cyan);
+  background: rgba(0, 229, 255, 0.07);
+  font-weight: 700;
+}
+
+.rules-link:hover,
+.rules-link:focus-visible,
+.help-toggle:hover,
+.help-toggle:focus-visible {
+  border-color: var(--accent-cyan);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(0, 229, 255, 0.14);
 }
 
 .settings-grid {

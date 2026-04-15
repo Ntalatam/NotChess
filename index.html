@@ -57,6 +57,7 @@
             <p class="section-kicker">Turn</p>
             <h2 id="turnStatus">Turn 1 - White</h2>
             <p id="roundStatus">Local duel</p>
+            <button class="help-toggle" type="button" data-help-open>Rules</button>
             <button class="sound-toggle" type="button" id="soundToggle" aria-pressed="true">SFX On</button>
           </div>
 
@@ -108,6 +109,7 @@
         <form class="start-panel" id="startForm">
           <p class="eyebrow">Local Two Player</p>
           <h1 id="menuTitle">Wacko Chess</h1>
+          <button class="rules-link" type="button" data-help-open>Rules & Controls</button>
           <div class="settings-grid">
             <label class="field">
               <span>White Player</span>
@@ -154,6 +156,49 @@
           <div class="stats-strip" id="statsStrip"></div>
           <button class="primary-action" type="submit">Begin Match</button>
         </form>
+      </div>
+
+      <div class="help-overlay" id="helpOverlay" role="dialog" aria-modal="true" aria-labelledby="helpTitle" hidden>
+        <section class="help-panel">
+          <div class="help-heading">
+            <p class="eyebrow">v1.3 Field Guide</p>
+            <h2 id="helpTitle">How To Play</h2>
+            <button class="icon-button" type="button" data-help-close aria-label="Close rules">×</button>
+          </div>
+
+          <div class="help-grid">
+            <article class="help-card">
+              <span>1</span>
+              <h3>Your Turn</h3>
+              <p>Draw up to four cards, then make one legal chess move. You may play one chaos card before that move.</p>
+            </article>
+            <article class="help-card">
+              <span>2</span>
+              <h3>Moving</h3>
+              <p>Click one of your pieces, then click a glowing target square. Promotion choices appear beside the board.</p>
+            </article>
+            <article class="help-card">
+              <span>3</span>
+              <h3>Cards</h3>
+              <p>Click a face-up card to play it. If it needs targets, legal squares flash; press Escape to cancel.</p>
+            </article>
+            <article class="help-card">
+              <span>4</span>
+              <h3>Mutations</h3>
+              <p>Captures can mutate the attacker. Hover colored piece badges to see powers like Shielded, Volatile, or Wild.</p>
+            </article>
+            <article class="help-card">
+              <span>5</span>
+              <h3>Tiles</h3>
+              <p>Animated board tiles change movement: Lava and Void destroy, Ice slides, Portals warp, Mines explode.</p>
+            </article>
+            <article class="help-card">
+              <span>6</span>
+              <h3>Winning</h3>
+              <p>Checkmate still wins. Kings can also be destroyed by Wacko effects; simultaneous King destruction is a draw.</p>
+            </article>
+          </div>
+        </section>
       </div>
 
       <div class="end-overlay" id="endOverlay" aria-live="polite" hidden></div>

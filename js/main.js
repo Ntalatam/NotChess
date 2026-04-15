@@ -54,6 +54,7 @@ const elements = {
   majorChaosOverlay: document.querySelector("#majorChaosOverlay"),
   majorChaosName: document.querySelector("#majorChaosName"),
   soundToggle: document.querySelector("#soundToggle"),
+  helpOverlay: document.querySelector("#helpOverlay"),
   endOverlay: document.querySelector("#endOverlay"),
 };
 
@@ -80,6 +81,7 @@ function bindEvents() {
   elements.whiteHand.addEventListener("click", handleCardClick);
   elements.blackHand.addEventListener("click", handleCardClick);
   elements.endOverlay.addEventListener("click", handleEndClick);
+  document.addEventListener("click", handleHelpClick);
   window.addEventListener("keydown", handleKeydown);
 }
 
@@ -259,8 +261,20 @@ function handleEndClick(event) {
   }
 }
 
+function handleHelpClick(event) {
+  if (event.target.closest("[data-help-open]")) {
+    elements.helpOverlay.hidden = false;
+    return;
+  }
+
+  if (event.target.closest("[data-help-close]") || event.target === elements.helpOverlay) {
+    elements.helpOverlay.hidden = true;
+  }
+}
+
 function handleKeydown(event) {
   if (event.key !== "Escape") return;
+  elements.helpOverlay.hidden = true;
   elements.promotionOverlay.hidden = true;
   state.targeting = null;
   state.pendingPromotion = null;
