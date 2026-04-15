@@ -1,4 +1,5 @@
 import { squareRect } from "./board.js";
+import { MUTATION_DEFINITIONS } from "./mutations.js";
 
 export const PIECE_TYPES = {
   p: { name: "Pawn", value: 1 },
@@ -130,7 +131,48 @@ function drawPieceAt(ctx, piece, x, y, size, frame, moving) {
     ctx.fill();
   }
 
+  drawMutationBadges(ctx, piece, x, y, size);
+
   ctx.restore();
+}
+
+function drawMutationBadges(ctx, piece, x, y, size) {
+  if (!piece.mutations.length) return;
+
+  const radius = Math.max(3.5, size * 0.055);
+  const gap = radius * 0.72;
+  const startX = x + size - radius - size * 0.11;
+  const startY = y + size - radius - size * 0.1;
+
+  piece.mutations.slice(0, 4).forEach((mutationId, index) => {
+    const mutation = MUTATION_DEFINITIONS[mutationId];
+    if (!mutation) return;
+    const row = Math.floor(index / 2);
+    const col = index % 2;
+    const cx = startX - col * (radius * 2 + gap);
+    const cy = startY - row * (radius * 2 + gap);
+
+    ctx.save();
+    ctx.shadowColor = mutation.badgeColor;
+    ctx.shadowBlur = 8;
+    if (mutationId === "WILDCARD") {
+      const gradient = ctx.createLinearGradient(cx - radius, cy - radius, cx + radius, cy + radius);
+      gradient.addColorStop(0, "#00e5ff");
+      gradient.addColorStop(0.34, "#f0c040");
+      gradient.addColorStop(0.68, "#ff3b5c");
+      gradient.addColorStop(1, "#39ff14");
+      ctx.fillStyle = gradient;
+    } else {
+      ctx.fillStyle = mutation.badgeColor;
+    }
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = "rgba(8, 10, 16, 0.92)";
+    ctx.stroke();
+    ctx.restore();
+  });
 }
 
 function drawCaptureEffects(ctx, metrics, captures, now) {

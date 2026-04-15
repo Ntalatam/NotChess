@@ -6,6 +6,8 @@ export const CONFIG = {
   handSizeMax: 4,
   deckSize: 40,
   chaosMax: 100,
+  mutationChance: 0.35,
+  maxMutationsPerPiece: 4,
   moveAnimMs: 200,
   bannerDisplayMs: 2000,
 };
@@ -41,7 +43,13 @@ export function createInitialState(settings = {}, rng = Math.random) {
     winner: null,
     gameOver: false,
     gameOverReason: "",
+    wackoGameOver: null,
     pendingPromotion: null,
+    wildcardRolls: {},
+    mutationStats: {
+      total: 0,
+      mostOnPiece: 0,
+    },
     hands: {
       white: [],
       black: [],

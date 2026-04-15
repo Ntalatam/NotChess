@@ -301,6 +301,47 @@ button {
   transform: translateX(-50%);
 }
 
+.mutation-tooltip {
+  position: fixed;
+  z-index: 50;
+  display: grid;
+  gap: 6px;
+  max-width: 330px;
+  padding: 10px 12px;
+  border: 1px solid rgba(0, 229, 255, 0.46);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  background: rgba(8, 10, 16, 0.94);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.42);
+  pointer-events: none;
+}
+
+.mutation-tooltip strong {
+  color: var(--accent-gold);
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.mutation-tooltip span {
+  position: relative;
+  padding-left: 14px;
+  color: var(--text-soft);
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.mutation-tooltip span::before {
+  position: absolute;
+  top: 4px;
+  left: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--badge);
+  box-shadow: 0 0 10px var(--badge);
+  content: "";
+}
+
 .promotion-popover p {
   margin: 0 0 8px;
   color: var(--accent-gold);

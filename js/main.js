@@ -1,11 +1,15 @@
 import { createBoardMetrics, drawBoard, pointToSquare } from "./board.js";
 import { drawPieces, getPieceAt } from "./pieces.js";
 import {
+  describeMutations,
+  getMutationTitle,
+} from "./mutations.js";
+import {
   getDisplayMoves,
   getLegalMoves,
   getPromotionChoices,
   isPlayersPiece,
-  requestStandardMove,
+  requestMove,
 } from "./rules.js";
 import { CONFIG, createInitialState, syncHudStats } from "./state.js";
 import { renderEndOverlay, renderShell, showAnnouncement } from "./ui.js";
@@ -35,6 +39,7 @@ const elements = {
   announcement: document.querySelector("#announcement"),
   statsStrip: document.querySelector("#statsStrip"),
   promotionOverlay: document.querySelector("#promotionOverlay"),
+  mutationTooltip: document.querySelector("#mutationTooltip"),
   endOverlay: document.querySelector("#endOverlay"),
 };
 
@@ -54,6 +59,8 @@ function bindEvents() {
   window.addEventListener("resize", resizeBoard);
   elements.startForm.addEventListener("submit", handleStart);
   elements.boardCanvas.addEventListener("click", handleBoardClick);
+  elements.boardCanvas.addEventListener("mousemove", handleBoardMouseMove);
+  elements.boardCanvas.addEventListener("mouseleave", hideMutationTooltip);
   elements.promotionOverlay.addEventListener("click", handlePromotionClick);
   elements.endOverlay.addEventListener("click", handleEndClick);
   window.addEventListener("keydown", handleKeydown);
@@ -117,6 +124,34 @@ function handleBoardClick(event) {
   }
 }
 
+function handleBoardMouseMove(event) {
+  const rect = elements.boardCanvas.getBoundingClientRect();
+  const square = pointToSquare(boardMetrics, event.clientX - rect.left, event.clientY - rect.top);
+  if (!square) {
+    hideMutationTooltip();
+    return;
+  }
+
+  const piece = getPieceAt(state.board, square.row, square.col);
+  if (!piece?.mutations.length) {
+    hideMutationTooltip();
+    return;
+  }
+
+  const mutations = describeMutations(piece);
+  elements.mutationTooltip.innerHTML = `
+    <strong>${getMutationTitle(piece)}</strong>
+    ${mutations.map((mutation) => `<span style="--badge:${mutation.badgeColor}">${mutation.name}: ${mutation.effect}</span>`).join("")}
+  `;
+  elements.mutationTooltip.style.left = `${event.clientX + 16}px`;
+  elements.mutationTooltip.style.top = `${event.clientY + 16}px`;
+  elements.mutationTooltip.hidden = false;
+}
+
+function hideMutationTooltip() {
+  elements.mutationTooltip.hidden = true;
+}
+
 function handlePromotionClick(event) {
   const button = event.target.closest("button[data-piece]");
   if (!button || !state.pendingPromotion) return;
@@ -163,7 +198,7 @@ function clearSelection() {
 }
 
 function commitMove(from, to, promotion = undefined) {
-  const result = requestStandardMove(state, from, to, promotion);
+  const result = requestMove(state, from, to, promotion);
   if (!result) {
     showAnnouncement(elements, "Illegal move", "critical");
     clearSelection();
@@ -186,6 +221,12 @@ function commitMove(from, to, promotion = undefined) {
       startedAt: performance.now(),
       duration: 420,
     });
+  }
+
+  if (result.shieldBlocked) {
+    showAnnouncement(elements, "Shield broke the capture", "warning");
+  } else if (result.gainedMutation) {
+    showAnnouncement(elements, `${result.gainedMutation.name} mutation gained`, "warning");
   }
 
   if (state.gameOver) {
