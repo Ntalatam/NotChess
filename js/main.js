@@ -12,6 +12,7 @@ import {
   requestMove,
 } from "./rules.js";
 import { CONFIG, createInitialState, syncHudStats } from "./state.js";
+import { drawTiles } from "./tiles.js";
 import { renderEndOverlay, renderShell, showAnnouncement } from "./ui.js";
 
 const STORAGE_KEY = "wacko-chess-settings-v1";
@@ -291,6 +292,7 @@ function tick() {
     validMoves: getDisplayMoves(state.validMoves),
     targetSquares: state.targetSquares,
   });
+  drawTiles(boardCtx, boardMetrics, state.specialTiles, frame);
   drawPieces(boardCtx, boardMetrics, state, frame, now);
   drawMenuBackdrop(frame);
   requestAnimationFrame(tick);

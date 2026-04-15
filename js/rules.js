@@ -10,6 +10,13 @@ import {
 } from "./pieces.js";
 import { CONFIG, addLog } from "./state.js";
 import {
+  ageTilesAfterFullRound,
+  getTileAt,
+  getTilesAt,
+  isSquareBlockedByTile,
+  removeTile,
+} from "./tiles.js";
+import {
   grantMutation,
   grantRandomMutation,
   hasMutation,
@@ -87,8 +94,11 @@ export function getLegalMoves(state, pieceId) {
     .filter((move) => move.color === piece.color);
 
   const mutationMoves = getMutationMoves(state, piece, position, baselineMoves);
-  const combined = mergeMoves([...baselineMoves, ...mutationMoves]);
-  return filterMagneto(state, piece, position, combined).filter((move) => isMoveSafe(state, piece, position, move));
+  const tileMoves = getAmplifierMoves(state, piece, position);
+  const combined = mergeMoves([...baselineMoves, ...mutationMoves, ...tileMoves]);
+  return filterMagneto(state, piece, position, combined)
+    .filter((move) => !isSquareBlockedByTile(state, move.row, move.col))
+    .filter((move) => isMoveSafe(state, piece, position, move));
 }
 
 export function getDisplayMoves(moves) {
@@ -333,6 +343,7 @@ function afterSuccessfulMove(state, boardResult, san, allowMutation = true) {
     }
   }
 
+  resolvePostMoveTiles(state, boardResult);
   state.turn = CHESS_TO_APP_COLOR[state.chess.turn()];
   state.turnCount = state.chess.moveNumber();
   state.selected = null;
@@ -341,9 +352,149 @@ function afterSuccessfulMove(state, boardResult, san, allowMutation = true) {
   state.pendingPromotion = null;
   state.wildcardRolls = {};
   updateGameStatus(state);
+  if (state.turn === "white") {
+    const expired = ageTilesAfterFullRound(state);
+    for (const tile of expired) {
+      addLog(state, `${tileName(tile)} dissolved.`);
+    }
+  }
 
   const captureText = boardResult.captured ? ` captures ${pieceLabel(boardResult.captured)}` : "";
   addLog(state, `${pieceLabel(boardResult.movingPiece)} ${san}${captureText}.`);
+}
+
+function resolvePostMoveTiles(state, boardResult) {
+  let current = boardResult.to;
+  let guard = 0;
+  const usedPortals = new Set();
+
+  while (guard < 5) {
+    guard += 1;
+    const piece = getPieceAt(state.board, current.row, current.col);
+    if (!piece) return;
+
+    const tiles = getTilesAt(state, current.row, current.col);
+    if (!tiles.length) return;
+
+    const mine = tiles.find((tile) => tile.type === "MINEFIELD");
+    if (mine) {
+      detonateMine(state, mine, current);
+      return;
+    }
+
+    const lethal = tiles.find((tile) => tile.type === "LAVA" || tile.type === "VOID");
+    if (lethal) {
+      destroyPieceAt(state, current.row, current.col, lethal.type === "LAVA" ? "burned in Lava" : "fell into the Void");
+      syncChessToBoard(state, CHESS_TO_APP_COLOR[state.chess.turn()]);
+      return;
+    }
+
+    const ice = tiles.find((tile) => tile.type === "ICE");
+    if (ice) {
+      const next = getIceSlideTarget(state, boardResult.from, current);
+      if (next) {
+        state.board[next.row][next.col] = piece;
+        state.board[current.row][current.col] = null;
+        addLog(state, `${pieceLabel(piece)} slid to ${squareToNotation(next.row, next.col)}.`);
+        boardResult.to = next;
+        current = next;
+        syncChessToBoard(state, CHESS_TO_APP_COLOR[state.chess.turn()]);
+        continue;
+      }
+    }
+
+    const portal = tiles.find((tile) => tile.type === "PORTAL_A" || tile.type === "PORTAL_B");
+    if (portal && !usedPortals.has(portal.id)) {
+      usedPortals.add(portal.id);
+      const exit = getPortalExit(state, portal);
+      if (exit && !getPieceAt(state.board, exit.row, exit.col)) {
+        usedPortals.add(exit.id);
+        state.board[exit.row][exit.col] = piece;
+        state.board[current.row][current.col] = null;
+        addLog(state, `${pieceLabel(piece)} warped to ${squareToNotation(exit.row, exit.col)}.`);
+        boardResult.to = { row: exit.row, col: exit.col };
+        current = boardResult.to;
+        syncChessToBoard(state, CHESS_TO_APP_COLOR[state.chess.turn()]);
+        continue;
+      }
+    }
+
+    const swapZone = tiles.find((tile) => tile.type === "SWAP_ZONE");
+    if (swapZone) {
+      resolveSwapZone(state, swapZone, piece);
+    }
+
+    return;
+  }
+}
+
+function getIceSlideTarget(state, from, current) {
+  const deltaRow = Math.sign(current.row - from.row);
+  const deltaCol = Math.sign(current.col - from.col);
+  if (deltaRow === 0 && deltaCol === 0) return null;
+  const row = current.row + deltaRow;
+  const col = current.col + deltaCol;
+  if (!isInside(row, col) || getPieceAt(state.board, row, col) || isSquareBlockedByTile(state, row, col)) return null;
+  return { row, col };
+}
+
+function getPortalExit(state, portal) {
+  if (!portal.pairId) return null;
+  return state.specialTiles.find((tile) => tile.pairId === portal.pairId && tile.id !== portal.id) || null;
+}
+
+function detonateMine(state, mine, center) {
+  removeTile(state, mine.id);
+  destroyPieceAt(state, center.row, center.col, "triggered a Minefield");
+  explodeFrom(state, center.row, center.col, null, new Set());
+  syncChessToBoard(state, CHESS_TO_APP_COLOR[state.chess.turn()]);
+}
+
+function destroyPieceAt(state, row, col, reason) {
+  const piece = getPieceAt(state.board, row, col);
+  if (!piece) return null;
+  state.board[row][col] = null;
+  addLog(state, `${pieceLabel(piece)} ${reason}.`);
+  if (piece.type === "k") {
+    state.wackoGameOver = {
+      winner: oppositeColor(piece.color),
+      reason: `${capitalize(piece.color)} King ${reason}`,
+    };
+  }
+  return piece;
+}
+
+function resolveSwapZone(state, tile, piece) {
+  const entry = state.swapZoneEntries[tile.id];
+  const currentEntry = {
+    pieceId: piece.id,
+    color: piece.color,
+    turnCount: state.turnCount,
+  };
+
+  if (!entry || entry.turnCount !== state.turnCount || entry.color === piece.color) {
+    state.swapZoneEntries[tile.id] = currentEntry;
+    return;
+  }
+
+  const otherPosition = findPiecePosition(state.board, entry.pieceId);
+  if (!otherPosition) {
+    state.swapZoneEntries[tile.id] = currentEntry;
+    return;
+  }
+
+  const otherPiece = getPieceAt(state.board, otherPosition.row, otherPosition.col);
+  if (!otherPiece || otherPiece.color === piece.color) {
+    state.swapZoneEntries[tile.id] = currentEntry;
+    return;
+  }
+
+  const pieceColor = piece.color;
+  piece.color = otherPiece.color;
+  otherPiece.color = pieceColor;
+  addLog(state, `${pieceLabel(piece)} and ${pieceLabel(otherPiece)} swapped ownership.`);
+  state.swapZoneEntries[tile.id] = currentEntry;
+  syncChessToBoard(state, CHESS_TO_APP_COLOR[state.chess.turn()]);
 }
 
 function blockCaptureWithShield(state, movingPiece, targetPiece, from, to) {
@@ -497,6 +648,55 @@ function getMutationMoves(state, piece, position, baselineMoves) {
 
   if (hasMutation(piece, "WILDCARD")) {
     moves.push(...getWildcardMoves(state, piece, position));
+  }
+
+  return moves;
+}
+
+function getAmplifierMoves(state, piece, position) {
+  if (!getTileAt(state, position.row, position.col, "AMPLIFIER")) return [];
+  const moves = [];
+
+  if (piece.type === "k") {
+    for (let deltaRow = -2; deltaRow <= 2; deltaRow += 1) {
+      for (let deltaCol = -2; deltaCol <= 2; deltaCol += 1) {
+        if (deltaRow === 0 && deltaCol === 0) continue;
+        const row = position.row + deltaRow;
+        const col = position.col + deltaCol;
+        if (!isInside(row, col)) continue;
+        const target = getPieceAt(state.board, row, col);
+        if (!target || target.color !== piece.color) {
+          moves.push(makeWackoMove(piece, position, row, col, "amplified", Boolean(target)));
+        }
+      }
+    }
+  }
+
+  if (piece.type === "n") {
+    for (const [deltaRow, deltaCol] of KNIGHT_DELTAS) {
+      const row = position.row + deltaRow * 2;
+      const col = position.col + deltaCol * 2;
+      if (!isInside(row, col)) continue;
+      const target = getPieceAt(state.board, row, col);
+      if (!target || target.color !== piece.color) {
+        moves.push(makeWackoMove(piece, position, row, col, "amplified", Boolean(target)));
+      }
+    }
+  }
+
+  if (piece.type === "p") {
+    const direction = piece.color === "white" ? -1 : 1;
+    const row = position.row + direction * 2;
+    if (isInside(row, position.col) && !getPieceAt(state.board, row, position.col)) {
+      moves.push(makeWackoMove(piece, position, row, position.col, "amplified"));
+    }
+    for (const deltaCol of [-2, 2]) {
+      const col = position.col + deltaCol;
+      const target = getPieceAt(state.board, row, col);
+      if (isInside(row, col) && target && target.color !== piece.color) {
+        moves.push(makeWackoMove(piece, position, row, col, "amplified", true));
+      }
+    }
   }
 
   return moves;
@@ -750,6 +950,10 @@ function moveToTarget(move, pieceId) {
 
 function isInside(row, col) {
   return row >= 0 && row < 8 && col >= 0 && col < 8;
+}
+
+function tileName(tile) {
+  return tile.type.replaceAll("_", " ");
 }
 
 function capitalize(value) {

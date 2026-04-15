@@ -55,6 +55,7 @@ export function createInitialState(settings = {}, rng = Math.random) {
       black: [],
     },
     specialTiles: [],
+    swapZoneEntries: {},
     chaosEvents: [],
     activeEvents: [],
     chaosMeter: 0,
