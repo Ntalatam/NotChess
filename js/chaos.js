@@ -178,7 +178,7 @@ export const CARD_DEFINITIONS = {
       if (!king || occupant?.type === "k") return;
       state.board[king.row][king.col] = null;
       state.board[targets[0].row][targets[0].col] = king.piece;
-      if (state.rng() >= 4 / 6) addChaosEvent(state, "KINGS_GAMBLE_CHECK", "King's Gamble Backlash", 1);
+      if (state.rng() >= 4 / 6) addChaosEvent(state, "KINGS_GAMBLE_CHECK", "King's Gamble Backlash", 1, color);
     },
   },
   PORTAL_PAIR: {
@@ -491,8 +491,12 @@ function rebelMove(state, color, target) {
   syncChessToBoard(state, originalTurn);
 }
 
-function addChaosEvent(state, type, name, turnsLeft) {
-  state.chaosEvents.push({ type, name, turnsLeft });
+export function hasChaosEvent(state, type) {
+  return state.chaosEvents.some((event) => event.type === type);
+}
+
+function addChaosEvent(state, type, name, turnsLeft, color = null) {
+  state.chaosEvents.push({ type, name, turnsLeft, color });
 }
 
 function tickChaosEvents(state) {

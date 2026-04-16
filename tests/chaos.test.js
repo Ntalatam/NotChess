@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { grantMutation } from "../js/mutations.js";
 import { moveFromNotation } from "../js/rules.js";
 import { createInitialState } from "../js/state.js";
-import { drawCard, getCardTargetSquares, playCard, setupChaosDeck } from "../js/chaos.js";
+import { drawCard, getCardTargetSquares, hasChaosEvent, playCard, setupChaosDeck } from "../js/chaos.js";
 
 test("chaos deck contains forty cards and deals opening hands", () => {
   const state = createInitialState();
@@ -62,6 +62,14 @@ test("time warp grants one extra move before the turn changes", () => {
   assert.equal(state.turn, "white");
   moveFromNotation(state, "g1", "f3");
   assert.equal(state.turn, "black");
+});
+
+test("hasChaosEvent detects active events by type", () => {
+  const state = createInitialState();
+  assert.equal(hasChaosEvent(state, "GRAVITY_FLIP"), false);
+  state.chaosEvents.push({ type: "GRAVITY_FLIP", name: "Gravity Flip", turnsLeft: 2, color: null });
+  assert.equal(hasChaosEvent(state, "GRAVITY_FLIP"), true);
+  assert.equal(hasChaosEvent(state, "THE_SWITCH"), false);
 });
 
 test("mutation injection can grant a mutation through card play", () => {
