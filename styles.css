@@ -227,8 +227,24 @@ button {
   text-align: right;
   font-size: var(--fs-lg);
   font-weight: 700;
-  color: var(--gold);
+  color: var(--text-3);
   font-variant-numeric: tabular-nums;
+  transition: color 160ms ease;
+}
+
+.hud-clock.is-active {
+  color: var(--gold);
+  text-shadow: 0 0 12px var(--gold-glow);
+}
+
+.hud-clock.is-low {
+  color: var(--red);
+  animation: clock-pulse 0.9s ease-in-out infinite;
+}
+
+@keyframes clock-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
 }
 
 /* ═══════════════════════════════════════════════════════════
