@@ -359,6 +359,9 @@ function afterSuccessfulMove(state, boardResult, san, allowMutation = true) {
         addLog(state, `${pieceLabel(boardResult.movingPiece)} gained ${mutation.name}.`);
       }
     }
+    if (hasChaosEvent(state, "RULE_INVERSION")) {
+      resurrectCapturedPiece(state, boardResult);
+    }
   }
 
   resolvePostMoveTiles(state, boardResult);
@@ -613,6 +616,33 @@ function resolveCapturedMutationHooks(state, boardResult) {
       reason: `${capitalize(boardResult.movingPiece.color)} shattered a Titan`,
     };
   }
+}
+
+function resurrectCapturedPiece(state, boardResult) {
+  const captured = boardResult.captured;
+  if (!captured || captured.type === "k") return;
+
+  const empty = [];
+  for (let r = 0; r < 8; r += 1) {
+    for (let c = 0; c < 8; c += 1) {
+      if (!state.board[r][c]) empty.push({ row: r, col: c });
+    }
+  }
+  if (!empty.length) return;
+
+  const target = empty[Math.floor(state.rng() * empty.length)];
+  const revived = createPiece(captured.color, captured.type);
+  revived.id = `revived-${captured.id}-${Date.now()}`;
+  revived.mutations = [...captured.mutations];
+  revived.promoted = captured.promoted;
+  state.board[target.row][target.col] = revived;
+
+  const capList = state.capturedPieces[boardResult.movingPiece.color];
+  const idx = capList.findIndex((p) => p.id === captured.id);
+  if (idx >= 0) capList.splice(idx, 1);
+
+  addLog(state, `Rule Inversion: ${pieceLabel(revived)} reappeared at ${squareToNotation(target.row, target.col)}.`);
+  syncChessToBoard(state, CHESS_TO_APP_COLOR[state.chess.turn()]);
 }
 
 function explodeFrom(state, row, col, sourceColor, visited) {

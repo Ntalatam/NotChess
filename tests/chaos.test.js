@@ -121,6 +121,34 @@ test("kings gamble backlash destroys a random piece of the triggering player", (
   assert.equal(state.chaosEvents.some((e) => e.type === "KINGS_GAMBLE_CHECK"), false, "event was removed after tick");
 });
 
+test("rule inversion resurrects captured pieces on a random empty square", () => {
+  const state = createInitialState({}, () => 0.5);
+  setupChaosDeck(state);
+  state.chaosEvents.push({ type: "RULE_INVERSION", name: "Rule Inversion", turnsLeft: 6, color: null });
+
+  // Set up a direct capture scenario
+  state.board[1][3] = null;
+  state.board[3][3] = { ...state.board[1][4], id: "black-p-target" };
+  state.board[3][3].color = "black";
+  state.board[3][3].type = "p";
+  state.board[3][3].mutations = [];
+  state.board[1][4] = null;
+  syncChessToBoard(state);
+
+  moveFromNotation(state, "e2", "e4");
+  moveFromNotation(state, "a7", "a6");
+
+  const piecesBeforeCapture = state.board.flat().filter(Boolean).length;
+  moveFromNotation(state, "e4", "d5");
+
+  const piecesAfterCapture = state.board.flat().filter(Boolean).length;
+  assert.equal(piecesAfterCapture, piecesBeforeCapture, "piece count unchanged due to resurrection");
+
+  const revivedPieces = state.board.flat().filter((p) => p && p.id.includes("revived"));
+  assert.equal(revivedPieces.length, 1, "a revived piece exists on the board");
+  assert.equal(state.capturedPieces.white.length, 0, "captured list is empty after resurrection");
+});
+
 test("mutation injection can grant a mutation through card play", () => {
   const state = createInitialState({}, () => 0);
   state.hands.white = [{ id: "MUTATION_INJECTION", instanceId: "mutate" }];
