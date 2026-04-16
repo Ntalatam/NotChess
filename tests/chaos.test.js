@@ -89,6 +89,24 @@ test("gravity flip makes white pawns move backward", () => {
   assert.equal(moves.some((m) => m.row === 3), false, "pawn cannot move forward during gravity flip");
 });
 
+test("the switch lets white control black pieces", () => {
+  const state = createInitialState();
+  setupChaosDeck(state);
+  state.chaosEvents.push({ type: "THE_SWITCH", name: "The Switch", turnsLeft: 1, color: null });
+
+  // White's turn, but with THE_SWITCH, white controls black pieces
+  const blackKnight = state.board[0][1]; // black knight at b8
+  const moves = getLegalMoves(state, blackKnight.id);
+
+  assert.equal(moves.length > 0, true, "white can generate moves for black pieces during THE_SWITCH");
+  assert.equal(blackKnight.color, "black", "piece is still black-owned");
+
+  // White's own pieces should NOT be selectable
+  const whitePawn = state.board[6][4];
+  const whiteMoves = getLegalMoves(state, whitePawn.id);
+  assert.equal(whiteMoves.length, 0, "white cannot move own pieces during THE_SWITCH");
+});
+
 test("mutation injection can grant a mutation through card play", () => {
   const state = createInitialState({}, () => 0);
   state.hands.white = [{ id: "MUTATION_INJECTION", instanceId: "mutate" }];

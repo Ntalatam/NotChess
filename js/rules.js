@@ -86,9 +86,12 @@ export function getLegalMoves(state, pieceId) {
   const position = findPiecePosition(state.board, pieceId);
   if (!position) return [];
   const piece = getPieceAt(state.board, position.row, position.col);
-  if (!piece || piece.color !== state.turn || state.gameOver) return [];
+  const active = effectiveTurn(state);
+  if (!piece || piece.color !== active || state.gameOver) return [];
   if (piece.frozenTurns > 0) return [];
 
+  const switched = active !== state.turn;
+  if (switched) syncChessToBoard(state, active);
   const square = squareToNotation(position.row, position.col);
   const gravityFlipped = piece.type === "p" && hasChaosEvent(state, "GRAVITY_FLIP");
   const baselineMoves = gravityFlipped
@@ -97,6 +100,7 @@ export function getLegalMoves(state, pieceId) {
         .moves({ square, verbose: true })
         .map((move) => moveToTarget(move, piece.id))
         .filter((move) => move.color === piece.color);
+  if (switched) syncChessToBoard(state, state.turn);
 
   const mutationMoves = getMutationMoves(state, piece, position, baselineMoves);
   const tileMoves = getAmplifierMoves(state, piece, position);
@@ -137,7 +141,7 @@ export function moveFromNotation(state, from, to, promotion = undefined) {
 
 export function requestMove(state, from, to, promotion = undefined) {
   const movingPiece = getPieceAt(state.board, from.row, from.col);
-  if (!movingPiece || movingPiece.color !== state.turn || state.gameOver) {
+  if (!movingPiece || movingPiece.color !== effectiveTurn(state) || state.gameOver) {
     return null;
   }
 
@@ -158,7 +162,7 @@ export function requestMove(state, from, to, promotion = undefined) {
 
 export function requestStandardMove(state, from, to, promotion = undefined) {
   const movingPiece = getPieceAt(state.board, from.row, from.col);
-  if (!movingPiece || movingPiece.color !== state.turn || state.gameOver) {
+  if (!movingPiece || movingPiece.color !== effectiveTurn(state) || state.gameOver) {
     return null;
   }
 
@@ -166,6 +170,9 @@ export function requestStandardMove(state, from, to, promotion = undefined) {
   if (targetPiece && targetPiece.color !== movingPiece.color && hasMutation(targetPiece, "SHIELD")) {
     return blockCaptureWithShield(state, movingPiece, targetPiece, from, to);
   }
+
+  const switched = effectiveTurn(state) !== state.turn;
+  if (switched) syncChessToBoard(state, effectiveTurn(state));
 
   const moveRequest = {
     from: squareToNotation(from.row, from.col),
@@ -179,6 +186,7 @@ export function requestStandardMove(state, from, to, promotion = undefined) {
   try {
     move = state.chess.move(moveRequest);
   } catch {
+    if (switched) syncChessToBoard(state, state.turn);
     return null;
   }
 
@@ -236,8 +244,12 @@ export function updateGameStatus(state) {
   }
 }
 
+export function effectiveTurn(state) {
+  return hasChaosEvent(state, "THE_SWITCH") ? oppositeColor(state.turn) : state.turn;
+}
+
 export function isPlayersPiece(state, row, col) {
-  return getPieceAt(state.board, row, col)?.color === state.turn;
+  return getPieceAt(state.board, row, col)?.color === effectiveTurn(state);
 }
 
 export function oppositeColor(color) {
