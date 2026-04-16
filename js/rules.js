@@ -8,6 +8,7 @@ import {
   pieceLabel,
   PIECE_TYPES,
 } from "./pieces.js";
+import { hasChaosEvent } from "./chaos.js";
 import { CONFIG, addLog } from "./state.js";
 import {
   ageTilesAfterFullRound,
@@ -89,10 +90,13 @@ export function getLegalMoves(state, pieceId) {
   if (piece.frozenTurns > 0) return [];
 
   const square = squareToNotation(position.row, position.col);
-  const baselineMoves = state.chess
-    .moves({ square, verbose: true })
-    .map((move) => moveToTarget(move, piece.id))
-    .filter((move) => move.color === piece.color);
+  const gravityFlipped = piece.type === "p" && hasChaosEvent(state, "GRAVITY_FLIP");
+  const baselineMoves = gravityFlipped
+    ? getGravityFlipPawnMoves(state, piece, position)
+    : state.chess
+        .moves({ square, verbose: true })
+        .map((move) => moveToTarget(move, piece.id))
+        .filter((move) => move.color === piece.color);
 
   const mutationMoves = getMutationMoves(state, piece, position, baselineMoves);
   const tileMoves = getAmplifierMoves(state, piece, position);
@@ -823,6 +827,32 @@ function getSlidingPseudoMoves(state, piece, position, directions, options) {
       if (target) break;
     }
   }
+  return moves;
+}
+
+function getGravityFlipPawnMoves(state, piece, position) {
+  const direction = piece.color === "white" ? 1 : -1;
+  const moves = [];
+  const oneRow = position.row + direction;
+
+  if (isInside(oneRow, position.col) && !getPieceAt(state.board, oneRow, position.col)) {
+    moves.push(makeWackoMove(piece, position, oneRow, position.col, "gravity-flip"));
+    const startRank = piece.color === "white" ? 1 : 6;
+    const twoRow = position.row + direction * 2;
+    if (position.row === startRank && isInside(twoRow, position.col) && !getPieceAt(state.board, twoRow, position.col)) {
+      moves.push(makeWackoMove(piece, position, twoRow, position.col, "gravity-flip"));
+    }
+  }
+
+  for (const deltaCol of [-1, 1]) {
+    const col = position.col + deltaCol;
+    if (!isInside(oneRow, col)) continue;
+    const target = getPieceAt(state.board, oneRow, col);
+    if (target && target.color !== piece.color) {
+      moves.push(makeWackoMove(piece, position, oneRow, col, "gravity-flip", true));
+    }
+  }
+
   return moves;
 }
 

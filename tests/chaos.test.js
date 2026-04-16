@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { grantMutation } from "../js/mutations.js";
-import { moveFromNotation } from "../js/rules.js";
+import { getLegalMoves, moveFromNotation, syncChessToBoard } from "../js/rules.js";
 import { createInitialState } from "../js/state.js";
 import { drawCard, getCardTargetSquares, hasChaosEvent, playCard, setupChaosDeck } from "../js/chaos.js";
 
@@ -70,6 +70,23 @@ test("hasChaosEvent detects active events by type", () => {
   state.chaosEvents.push({ type: "GRAVITY_FLIP", name: "Gravity Flip", turnsLeft: 2, color: null });
   assert.equal(hasChaosEvent(state, "GRAVITY_FLIP"), true);
   assert.equal(hasChaosEvent(state, "THE_SWITCH"), false);
+});
+
+test("gravity flip makes white pawns move backward", () => {
+  const state = createInitialState();
+  setupChaosDeck(state);
+
+  // Move pawn to row 4 so it has open space behind (row 5, 6)
+  const pawn = state.board[6][0];
+  state.board[6][0] = null;
+  state.board[4][0] = pawn;
+  syncChessToBoard(state);
+
+  state.chaosEvents.push({ type: "GRAVITY_FLIP", name: "Gravity Flip", turnsLeft: 2, color: null });
+  const moves = getLegalMoves(state, pawn.id);
+
+  assert.equal(moves.some((m) => m.row === 5), true, "pawn can move backward to row 5");
+  assert.equal(moves.some((m) => m.row === 3), false, "pawn cannot move forward during gravity flip");
 });
 
 test("mutation injection can grant a mutation through card play", () => {
