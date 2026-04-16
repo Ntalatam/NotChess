@@ -3,9 +3,10 @@ import {
   CARD_DEFINITIONS,
   getCardTargetSquares,
   getTargetCount,
+  hasChaosEvent,
 } from "./chaos.js";
 import { findPiecePosition, getPieceAt, PIECE_TYPES } from "./pieces.js";
-import { getLegalMoves, oppositeColor } from "./rules.js";
+import { effectiveTurn, getLegalMoves, oppositeColor } from "./rules.js";
 
 const CARD_PRIORITY = {
   NUCLEAR_OPTION: 100,
@@ -53,8 +54,9 @@ export function chooseAiCardPlay(state, color = "black") {
 
 export function chooseAiMove(state, color = "black") {
   const candidates = [];
+  const pieceColor = effectiveTurn(state) === color ? color : effectiveTurn(state);
 
-  for (const { piece, row, col } of allPieces(state, color)) {
+  for (const { piece, row, col } of allPieces(state, pieceColor)) {
     const moves = getLegalMoves(state, piece.id);
     for (const move of moves) {
       candidates.push({
@@ -130,7 +132,8 @@ function scoreCardTarget(state, color, cardId, target) {
 function scoreMove(state, color, piece, move) {
   const target = getPieceAt(state.board, move.row, move.col);
   let score = state.rng() * 0.2;
-  score += pieceValue(target) * (target?.color === oppositeColor(color) ? 10 : -4);
+  const captureMultiplier = hasChaosEvent(state, "RULE_INVERSION") ? 2 : 10;
+  score += pieceValue(target) * (target?.color === oppositeColor(color) ? captureMultiplier : -4);
   score += move.promotion ? 18 : 0;
   score += move.special === "clone" ? 9 : 0;
   score += move.wacko ? 1.6 : 0;
