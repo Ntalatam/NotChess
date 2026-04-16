@@ -287,12 +287,23 @@ function handleEndClick(event) {
 function handleHelpClick(event) {
   if (event.target.closest("[data-help-open]")) {
     elements.helpOverlay.hidden = false;
+    pauseClock(state);
     return;
   }
 
   if (event.target.closest("[data-help-close]") || event.target === elements.helpOverlay) {
     elements.helpOverlay.hidden = true;
+    if (isMatchLive()) resumeClock(state);
   }
+}
+
+function isMatchLive() {
+  return (
+    !state.gameOver &&
+    elements.menuOverlay.hidden &&
+    elements.helpOverlay.hidden &&
+    elements.promotionOverlay.hidden
+  );
 }
 
 function handleKeydown(event) {
@@ -302,6 +313,7 @@ function handleKeydown(event) {
   state.targeting = null;
   state.pendingPromotion = null;
   clearSelection();
+  if (isMatchLive()) resumeClock(state);
 }
 
 function selectPiece(row, col) {
@@ -359,6 +371,7 @@ function commitMove(from, to, promotion = undefined) {
   }
 
   if (state.gameOver) {
+    pauseClock(state);
     updateStatsForGameOver();
     showAnnouncement(elements, state.gameOverReason, state.winner ? "critical" : "warning");
     playTone("end");
@@ -383,6 +396,7 @@ function renderPromotionChoices(choices) {
     button.hidden = !choices.includes(button.dataset.piece);
   }
   elements.promotionOverlay.hidden = false;
+  pauseClock(state);
 }
 
 function restartMatch(showMenu) {
