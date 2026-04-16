@@ -24,6 +24,7 @@ import {
 } from "./rules.js";
 import {
   CONFIG,
+  checkTimeout,
   createInitialState,
   flushActiveClock,
   formatClock,
@@ -371,10 +372,7 @@ function commitMove(from, to, promotion = undefined) {
   }
 
   if (state.gameOver) {
-    pauseClock(state);
-    updateStatsForGameOver();
-    showAnnouncement(elements, state.gameOverReason, state.winner ? "critical" : "warning");
-    playTone("end");
+    handleGameOver();
   } else if (state.check) {
     showAnnouncement(elements, "Check", "critical");
   }
@@ -464,6 +462,10 @@ function tick() {
 
 function updateClockDisplay() {
   if (isUnlimited(state)) return;
+  if (checkTimeout(state)) {
+    handleGameOver();
+    return;
+  }
   for (const color of ["white", "black"]) {
     const hud = color === "white" ? elements.whiteHud : elements.blackHud;
     const clockEl = hud?.querySelector(".hud-clock");
@@ -473,6 +475,15 @@ function updateClockDisplay() {
     clockEl.classList.toggle("is-low", remaining != null && remaining <= 30000);
     clockEl.classList.toggle("is-active", state.clocks.activeColor === color && !state.clocks.paused);
   }
+}
+
+function handleGameOver() {
+  pauseClock(state);
+  window.clearTimeout(aiTimer);
+  updateStatsForGameOver();
+  showAnnouncement(elements, state.gameOverReason, state.winner ? "critical" : "warning");
+  playTone("end");
+  render();
 }
 
 function drawMenuBackdrop(currentFrame) {

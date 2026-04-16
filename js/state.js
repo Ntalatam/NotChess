@@ -200,3 +200,17 @@ export function flushActiveClock(state, now = Date.now()) {
   clocks[clocks.activeColor] = Math.max(0, clocks[clocks.activeColor] - elapsed);
   clocks.startedAt = now;
 }
+
+export function checkTimeout(state, now = Date.now()) {
+  if (state.clocks.white == null || state.gameOver) return false;
+  flushActiveClock(state, now);
+  const active = state.clocks.activeColor;
+  if (state.clocks[active] > 0) return false;
+  const winner = active === "white" ? "black" : "white";
+  state.gameOver = true;
+  state.winner = winner;
+  state.gameOverReason = `${winner[0].toUpperCase()}${winner.slice(1)} wins on time`;
+  state.clocks.paused = true;
+  state.clocks.startedAt = null;
+  return true;
+}
