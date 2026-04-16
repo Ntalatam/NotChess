@@ -13,7 +13,8 @@ export const CONFIG = {
 };
 
 export function createInitialState(settings = {}, rng = Math.random) {
-  const timerLabel = settings.timer && settings.timer !== "unlimited" ? `${settings.timer}:00` : "--:--";
+  const timerMs = resolveTimerMs(settings.timer);
+  const timerLabel = formatClock(timerMs);
   const stats = settings.stats || {
     gamesPlayed: 0,
     whiteWins: 0,
@@ -83,6 +84,13 @@ export function createInitialState(settings = {}, rng = Math.random) {
     },
     enPassantTarget: null,
     halfMoveClock: 0,
+    clocks: {
+      white: timerMs,
+      black: timerMs,
+      activeColor: "white",
+      startedAt: null,
+      paused: true,
+    },
     log: ["The board is armed."],
     players: {
       white: {
@@ -132,4 +140,63 @@ function countMutations(state, color) {
 
 function countFrozen(state, color) {
   return state.board.flat().filter((piece) => piece?.color === color && piece.frozenTurns > 0).length;
+}
+
+export function resolveTimerMs(timer) {
+  if (!timer || timer === "unlimited") return null;
+  const minutes = Number(timer);
+  if (!Number.isFinite(minutes) || minutes <= 0) return null;
+  return minutes * 60 * 1000;
+}
+
+export function formatClock(ms) {
+  if (ms == null) return "--:--";
+  const clamped = Math.max(0, Math.round(ms / 1000));
+  const minutes = Math.floor(clamped / 60);
+  const seconds = clamped % 60;
+  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+}
+
+export function getRemainingMs(state, color, now = Date.now()) {
+  const clocks = state.clocks;
+  const base = clocks[color];
+  if (base == null) return null;
+  if (clocks.paused || clocks.activeColor !== color || clocks.startedAt == null) return base;
+  return Math.max(0, base - (now - clocks.startedAt));
+}
+
+export function isUnlimited(state) {
+  return state.clocks.white == null;
+}
+
+export function startClock(state, color, now = Date.now()) {
+  const clocks = state.clocks;
+  if (clocks.white == null) return;
+  flushActiveClock(state, now);
+  clocks.activeColor = color;
+  clocks.startedAt = now;
+  clocks.paused = false;
+}
+
+export function pauseClock(state, now = Date.now()) {
+  const clocks = state.clocks;
+  if (clocks.white == null || clocks.paused) return;
+  flushActiveClock(state, now);
+  clocks.paused = true;
+  clocks.startedAt = null;
+}
+
+export function resumeClock(state, now = Date.now()) {
+  const clocks = state.clocks;
+  if (clocks.white == null || !clocks.paused) return;
+  clocks.paused = false;
+  clocks.startedAt = now;
+}
+
+export function flushActiveClock(state, now = Date.now()) {
+  const clocks = state.clocks;
+  if (clocks.white == null || clocks.paused || clocks.startedAt == null) return;
+  const elapsed = now - clocks.startedAt;
+  clocks[clocks.activeColor] = Math.max(0, clocks[clocks.activeColor] - elapsed);
+  clocks.startedAt = now;
 }
