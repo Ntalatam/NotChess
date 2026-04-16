@@ -52,6 +52,7 @@ const elements = {
   whiteNameInput: document.querySelector("#whiteNameInput"),
   blackNameInput: document.querySelector("#blackNameInput"),
   aiOpponentInput: document.querySelector("#aiOpponentInput"),
+  difficultyField: document.querySelector("#difficultyField"),
   whiteHud: document.querySelector("#whiteHud"),
   blackHud: document.querySelector("#blackHud"),
   whiteHand: document.querySelector("#whiteHand"),
@@ -621,11 +622,13 @@ function updateAiNameState() {
   if (elements.aiOpponentInput.checked) {
     elements.blackNameInput.value = "Wacko AI";
     elements.blackNameInput.disabled = true;
+    if (elements.difficultyField) elements.difficultyField.hidden = false;
   } else {
     elements.blackNameInput.disabled = false;
     if (elements.blackNameInput.value === "Wacko AI") {
       elements.blackNameInput.value = "Black";
     }
+    if (elements.difficultyField) elements.difficultyField.hidden = true;
   }
 }
 
@@ -638,6 +641,7 @@ function readSettingsForm() {
     aiOpponent,
     intensity: String(formData.get("intensity") || "standard"),
     timer: String(formData.get("timer") || "unlimited"),
+    aiDifficulty: String(formData.get("aiDifficulty") || "standard"),
   };
 }
 
@@ -651,6 +655,7 @@ function applyStoredSettings() {
   updateAiNameState();
   setRadio("intensity", settings.intensity || "standard");
   setRadio("timer", settings.timer || "unlimited");
+  setRadio("aiDifficulty", settings.aiDifficulty || "standard");
   state = createInitialState({ ...settings, stats: loadStats() });
 }
 

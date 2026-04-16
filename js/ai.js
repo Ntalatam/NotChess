@@ -1,3 +1,4 @@
+import { Chess } from "../vendor/chess.js";
 import {
   canPlayCard,
   CARD_DEFINITIONS,
@@ -7,6 +8,20 @@ import {
 } from "./chaos.js";
 import { findPiecePosition, getPieceAt, PIECE_TYPES } from "./pieces.js";
 import { effectiveTurn, getLegalMoves, oppositeColor } from "./rules.js";
+
+const DIFFICULTY_DEPTH = {
+  easy: 0,
+  standard: 2,
+  hard: 3,
+};
+
+const DIFFICULTY_RANDOMNESS = {
+  easy: 2.5,
+  standard: 0.5,
+  hard: 0.15,
+};
+
+const PIECE_MATERIAL = { p: 1, n: 3, b: 3.2, r: 5, q: 9, k: 1000 };
 
 const CARD_PRIORITY = {
   NUCLEAR_OPTION: 100,
@@ -53,6 +68,10 @@ export function chooseAiCardPlay(state, color = "black") {
 }
 
 export function chooseAiMove(state, color = "black") {
+  const difficulty = state.settings?.aiDifficulty || "standard";
+  const depth = DIFFICULTY_DEPTH[difficulty] ?? 2;
+  const randomness = DIFFICULTY_RANDOMNESS[difficulty] ?? 0.5;
+
   const candidates = [];
   const pieceColor = effectiveTurn(state) === color ? color : effectiveTurn(state);
 
@@ -70,10 +89,92 @@ export function chooseAiMove(state, color = "black") {
   }
 
   if (!candidates.length) return null;
+
+  if (depth > 0) {
+    const searchDepth = depth;
+    for (const candidate of candidates) {
+      const lookahead = evaluateWithLookahead(state, color, candidate, searchDepth);
+      if (lookahead != null) {
+        candidate.score = candidate.score * 0.4 + lookahead;
+      }
+    }
+  }
+
   candidates.sort((a, b) => b.score - a.score);
   const topScore = candidates[0].score;
-  const best = candidates.filter((candidate) => candidate.score >= topScore - 0.5);
+  const threshold = topScore - randomness;
+  const best = candidates.filter((candidate) => candidate.score >= threshold);
   return best[Math.floor(state.rng() * best.length)];
+}
+
+function evaluateWithLookahead(state, color, candidate, depth) {
+  const chessClone = new Chess(state.chess.fen());
+  const uciMove = toUci(candidate);
+  let applied;
+  try {
+    applied = chessClone.move(uciMove);
+  } catch {
+    return null;
+  }
+  if (!applied) return null;
+
+  return -minimax(chessClone, depth - 1, -Infinity, Infinity, color, oppositeColor(color));
+}
+
+function minimax(chess, depth, alpha, beta, rootColor, activeColor) {
+  if (depth <= 0 || chess.isGameOver()) {
+    return materialEval(chess, rootColor);
+  }
+
+  const moves = chess.moves({ verbose: true });
+  if (!moves.length) {
+    if (chess.isCheckmate()) {
+      return rootColor === activeColor ? -9999 : 9999;
+    }
+    return 0;
+  }
+
+  const maximizing = activeColor === rootColor;
+  let best = maximizing ? -Infinity : Infinity;
+
+  for (const move of moves) {
+    chess.move(move);
+    const score = minimax(chess, depth - 1, alpha, beta, rootColor, oppositeColor(activeColor));
+    chess.undo();
+
+    if (maximizing) {
+      if (score > best) best = score;
+      if (best > alpha) alpha = best;
+    } else {
+      if (score < best) best = score;
+      if (best < beta) beta = best;
+    }
+    if (beta <= alpha) break;
+  }
+
+  return best;
+}
+
+function materialEval(chess, rootColor) {
+  const board = chess.board();
+  let score = 0;
+  for (const row of board) {
+    for (const cell of row) {
+      if (!cell) continue;
+      const value = PIECE_MATERIAL[cell.type] || 0;
+      const isRoot = (cell.color === "w" && rootColor === "white") || (cell.color === "b" && rootColor === "black");
+      score += isRoot ? value : -value;
+    }
+  }
+  return score;
+}
+
+function toUci(candidate) {
+  const from = `${"abcdefgh"[candidate.from.col]}${8 - candidate.from.row}`;
+  const to = `${"abcdefgh"[candidate.to.col]}${8 - candidate.to.row}`;
+  const uci = { from, to };
+  if (candidate.promotion) uci.promotion = candidate.promotion;
+  return uci;
 }
 
 function chooseCardTargets(state, color, handIndex, targetCount) {

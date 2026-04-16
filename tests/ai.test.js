@@ -24,6 +24,18 @@ test("AI chooses a legal opening move for black", () => {
   assert.equal(state.board[move.from.row][move.from.col].color, "black");
 });
 
+test("AI difficulty picks a legal move across easy/standard/hard", () => {
+  for (const difficulty of ["easy", "standard", "hard"]) {
+    const state = createInitialState({ aiOpponent: true, aiDifficulty: difficulty }, () => 0.2);
+    state.turn = "black";
+    state.chess.setTurn("b");
+
+    const move = chooseAiMove(state, "black");
+    assert.ok(move, `${difficulty} returned a move`);
+    assert.equal(state.board[move.from.row][move.from.col].color, "black");
+  }
+});
+
 test("AI picks a playable card with valid targets", () => {
   const state = createInitialState({ aiOpponent: true }, () => 0);
   state.turn = "black";

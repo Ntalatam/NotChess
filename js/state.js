@@ -32,6 +32,7 @@ export function createInitialState(settings = {}, rng = Math.random) {
       intensity: settings.intensity || "standard",
       timer: settings.timer || "unlimited",
       aiOpponent: Boolean(settings.aiOpponent),
+      aiDifficulty: settings.aiDifficulty || "standard",
     },
     turn: "white",
     turnCount: 1,
