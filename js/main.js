@@ -22,7 +22,18 @@ import {
   isPlayersPiece,
   requestMove,
 } from "./rules.js";
-import { CONFIG, createInitialState, syncHudStats } from "./state.js";
+import {
+  CONFIG,
+  createInitialState,
+  flushActiveClock,
+  formatClock,
+  getRemainingMs,
+  isUnlimited,
+  pauseClock,
+  resumeClock,
+  startClock,
+  syncHudStats,
+} from "./state.js";
 import { drawTiles } from "./tiles.js";
 import { renderEndOverlay, renderShell, showAnnouncement } from "./ui.js";
 
@@ -400,6 +411,7 @@ function beginTurn() {
       ? "Wacko AI thinking"
       : "Your move"
     : `${state.settings.intensity} chaos`;
+  if (!state.gameOver) startClock(state, state.turn);
   render();
   maybeQueueAiTurn();
 }
@@ -432,7 +444,21 @@ function tick() {
   drawTiles(boardCtx, boardMetrics, state.specialTiles, frame);
   drawPieces(boardCtx, boardMetrics, state, frame, now);
   drawMenuBackdrop(frame);
+  if (frame % 15 === 0) updateClockDisplay();
   requestAnimationFrame(tick);
+}
+
+function updateClockDisplay() {
+  if (isUnlimited(state)) return;
+  for (const color of ["white", "black"]) {
+    const hud = color === "white" ? elements.whiteHud : elements.blackHud;
+    const clockEl = hud?.querySelector(".hud-clock");
+    if (!clockEl) continue;
+    const remaining = getRemainingMs(state, color);
+    clockEl.textContent = formatClock(remaining);
+    clockEl.classList.toggle("is-low", remaining != null && remaining <= 30000);
+    clockEl.classList.toggle("is-active", state.clocks.activeColor === color && !state.clocks.paused);
+  }
 }
 
 function drawMenuBackdrop(currentFrame) {
