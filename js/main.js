@@ -31,6 +31,8 @@ import {
   getRemainingMs,
   isUnlimited,
   pauseClock,
+  pushUndoSnapshot,
+  restoreUndoSnapshot,
   resumeClock,
   startClock,
   syncHudStats,
@@ -68,6 +70,8 @@ const elements = {
   majorChaosOverlay: document.querySelector("#majorChaosOverlay"),
   majorChaosName: document.querySelector("#majorChaosName"),
   soundToggle: document.querySelector("#soundToggle"),
+  undoButton: document.querySelector("#undoButton"),
+  moveHistory: document.querySelector("#moveHistory"),
   helpOverlay: document.querySelector("#helpOverlay"),
   endOverlay: document.querySelector("#endOverlay"),
 };
@@ -97,8 +101,31 @@ function bindEvents() {
   elements.whiteHand.addEventListener("click", handleCardClick);
   elements.blackHand.addEventListener("click", handleCardClick);
   elements.endOverlay.addEventListener("click", handleEndClick);
+  elements.undoButton?.addEventListener("click", handleUndo);
   document.addEventListener("click", handleHelpClick);
   window.addEventListener("keydown", handleKeydown);
+}
+
+function handleUndo() {
+  if (!state.undoStack.length) return;
+  if (isAiTurn()) {
+    showAnnouncement(elements, "Wait for your turn", "critical");
+    return;
+  }
+  window.clearTimeout(aiTimer);
+  const restored = restoreUndoSnapshot(state);
+  if (!restored) return;
+  clearSelection();
+  elements.promotionOverlay.hidden = true;
+  state.status = state.settings.aiOpponent
+    ? state.turn === "black"
+      ? "Wacko AI thinking"
+      : "Your move"
+    : `${state.settings.intensity} chaos`;
+  if (!isUnlimited(state)) startClock(state, state.turn);
+  showAnnouncement(elements, "Move taken back", "warning");
+  render();
+  maybeQueueAiTurn();
 }
 
 function handleStart(event) {
@@ -335,8 +362,10 @@ function clearSelection() {
 
 function commitMove(from, to, promotion = undefined) {
   const previousTurn = state.turn;
+  pushUndoSnapshot(state);
   const result = requestMove(state, from, to, promotion);
   if (!result) {
+    state.undoStack.pop();
     showAnnouncement(elements, "Illegal move", "critical");
     clearSelection();
     return;
@@ -452,6 +481,7 @@ function tick() {
     selected: state.selected,
     validMoves: getDisplayMoves(state.validMoves),
     targetSquares: state.targetSquares,
+    lastMove: state.lastMove,
   });
   drawTiles(boardCtx, boardMetrics, state.specialTiles, frame);
   drawPieces(boardCtx, boardMetrics, state, frame, now);

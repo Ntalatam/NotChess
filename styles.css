@@ -750,6 +750,59 @@ button {
   font-weight: 600;
 }
 
+.move-history {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 180px;
+  overflow-y: auto;
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+}
+
+.move-history__empty {
+  color: var(--text-4);
+  font-style: italic;
+  padding: var(--sp-1) 0;
+}
+
+.move-row {
+  display: grid;
+  grid-template-columns: 28px 1fr 1fr;
+  gap: var(--sp-2);
+  padding: 3px var(--sp-2);
+  border-radius: var(--radius-sm);
+}
+
+.move-row:nth-child(even) {
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.move-row__num {
+  color: var(--text-4);
+  font-weight: 600;
+}
+
+.move-row__white {
+  color: var(--text-1);
+}
+
+.move-row__black {
+  color: var(--text-2);
+}
+
+.move-history::-webkit-scrollbar {
+  width: 4px;
+}
+
+.move-history::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 100px;
+}
+
 /* ═══════════════════════════════════════════════════════════
    BUTTONS
    ═══════════════════════════════════════════════════════════ */

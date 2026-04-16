@@ -73,9 +73,24 @@ export function drawBoard(ctx, metrics, frame, options = {}) {
   }
 
   drawCoordinates(ctx, metrics);
+  drawLastMove(ctx, metrics, options.lastMove);
   drawSelection(ctx, metrics, options.selected, frame);
   drawValidMoves(ctx, metrics, options.validMoves || [], frame);
   drawTargeting(ctx, metrics, options.targetSquares || [], frame);
+}
+
+function drawLastMove(ctx, metrics, lastMove) {
+  if (!lastMove) return;
+  ctx.save();
+  ctx.fillStyle = "rgba(240, 192, 64, 0.18)";
+  ctx.strokeStyle = "rgba(240, 192, 64, 0.45)";
+  ctx.lineWidth = 2;
+  for (const square of [lastMove.from, lastMove.to]) {
+    const { x, y, size } = squareRect(metrics, square.row, square.col);
+    ctx.fillRect(x, y, size, size);
+    ctx.strokeRect(x + 2, y + 2, size - 4, size - 4);
+  }
+  ctx.restore();
 }
 
 function drawFrame(ctx, metrics, frame) {

@@ -389,6 +389,21 @@ function afterSuccessfulMove(state, boardResult, san, allowMutation = true) {
 
   const captureText = boardResult.captured ? ` captures ${pieceLabel(boardResult.captured)}` : "";
   addLog(state, `${pieceLabel(boardResult.movingPiece)} ${san}${captureText}.`);
+
+  state.lastMove = {
+    from: { row: boardResult.from.row, col: boardResult.from.col },
+    to: { row: boardResult.to.row, col: boardResult.to.col },
+    color: actingColor,
+  };
+  state.moveHistory.push({
+    turnCount: state.turnCount,
+    color: actingColor,
+    san,
+    from: squareToNotation(boardResult.from.row, boardResult.from.col),
+    to: squareToNotation(boardResult.to.row, boardResult.to.col),
+    captured: boardResult.captured ? boardResult.captured.type : null,
+    promotion: boardResult.move?.promotion || null,
+  });
 }
 
 function resolvePostMoveTiles(state, boardResult) {

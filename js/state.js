@@ -84,6 +84,9 @@ export function createInitialState(settings = {}, rng = Math.random) {
     },
     enPassantTarget: null,
     halfMoveClock: 0,
+    moveHistory: [],
+    lastMove: null,
+    undoStack: [],
     clocks: {
       white: timerMs,
       black: timerMs,
@@ -199,6 +202,97 @@ export function flushActiveClock(state, now = Date.now()) {
   const elapsed = now - clocks.startedAt;
   clocks[clocks.activeColor] = Math.max(0, clocks[clocks.activeColor] - elapsed);
   clocks.startedAt = now;
+}
+
+const UNDO_STACK_MAX = 16;
+
+export function snapshotForUndo(state) {
+  return {
+    board: clone(state.board),
+    fen: state.chess.fen(),
+    turn: state.turn,
+    turnCount: state.turnCount,
+    hands: clone(state.hands),
+    deck: clone(state.deck),
+    chaosEvents: clone(state.chaosEvents),
+    specialTiles: clone(state.specialTiles),
+    chaosMeter: state.chaosMeter,
+    majorChaosCount: state.majorChaosCount,
+    cardsPlayed: state.cardsPlayed,
+    capturedPieces: clone(state.capturedPieces),
+    extraMoves: { ...state.extraMoves },
+    enPassantTarget: state.enPassantTarget ? { ...state.enPassantTarget } : null,
+    halfMoveClock: state.halfMoveClock,
+    check: state.check,
+    moveHistory: clone(state.moveHistory),
+    lastMove: state.lastMove ? { ...state.lastMove } : null,
+    turnActions: { ...state.turnActions },
+    log: [...state.log],
+    mutationStats: { ...state.mutationStats },
+    wildcardRolls: { ...state.wildcardRolls },
+    swapZoneEntries: { ...state.swapZoneEntries },
+    clocks: { ...state.clocks },
+    players: {
+      white: { ...state.players.white },
+      black: { ...state.players.black },
+    },
+  };
+}
+
+export function pushUndoSnapshot(state) {
+  state.undoStack.push(snapshotForUndo(state));
+  if (state.undoStack.length > UNDO_STACK_MAX) {
+    state.undoStack.shift();
+  }
+}
+
+export function restoreUndoSnapshot(state) {
+  const snap = state.undoStack.pop();
+  if (!snap) return false;
+  state.board = snap.board;
+  state.chess.load(snap.fen);
+  state.turn = snap.turn;
+  state.turnCount = snap.turnCount;
+  state.hands = snap.hands;
+  state.deck = snap.deck;
+  state.chaosEvents = snap.chaosEvents;
+  state.specialTiles = snap.specialTiles;
+  state.chaosMeter = snap.chaosMeter;
+  state.majorChaosCount = snap.majorChaosCount;
+  state.cardsPlayed = snap.cardsPlayed;
+  state.capturedPieces = snap.capturedPieces;
+  state.extraMoves = snap.extraMoves;
+  state.enPassantTarget = snap.enPassantTarget;
+  state.halfMoveClock = snap.halfMoveClock;
+  state.check = snap.check;
+  state.moveHistory = snap.moveHistory;
+  state.lastMove = snap.lastMove;
+  state.turnActions = snap.turnActions;
+  state.log = snap.log;
+  state.mutationStats = snap.mutationStats;
+  state.wildcardRolls = snap.wildcardRolls;
+  state.swapZoneEntries = snap.swapZoneEntries;
+  state.clocks = snap.clocks;
+  state.players = snap.players;
+  // Clear ephemeral selection/animation state
+  state.selected = null;
+  state.validMoves = [];
+  state.targetSquares = [];
+  state.pendingPromotion = null;
+  state.targeting = null;
+  state.animation = null;
+  state.gameOver = false;
+  state.winner = null;
+  state.gameOverReason = "";
+  state.wackoGameOver = null;
+  state.checkmate = false;
+  state.stalemate = false;
+  state.draw = false;
+  return true;
+}
+
+function clone(value) {
+  return JSON.parse(JSON.stringify(value));
 }
 
 export function checkTimeout(state, now = Date.now()) {

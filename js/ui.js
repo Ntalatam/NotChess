@@ -13,6 +13,8 @@ export function renderShell(state, elements) {
   renderHands(elements.whiteHand, state.hands.white, state.turn !== "white", "white", state);
   renderHands(elements.blackHand, state.hands.black, state.settings.aiOpponent || state.turn !== "black", "black", state);
   renderSidebar(state, elements);
+  renderMoveHistory(elements.moveHistory, state.moveHistory);
+  renderUndoButton(elements.undoButton, state);
   renderStats(elements.statsStrip, state.stats);
 }
 
@@ -118,6 +120,36 @@ function renderSidebar(state, elements) {
     .slice(-20)
     .map((event) => `<li>${escapeHtml(event)}</li>`)
     .join("");
+}
+
+function renderMoveHistory(container, history) {
+  if (!container) return;
+  if (!history.length) {
+    container.innerHTML = `<li class="move-history__empty">No moves yet.</li>`;
+    return;
+  }
+
+  const rows = [];
+  for (let i = 0; i < history.length; i += 2) {
+    const white = history[i];
+    const black = history[i + 1];
+    const number = Math.floor(i / 2) + 1;
+    rows.push(`
+      <li class="move-row">
+        <span class="move-row__num">${number}.</span>
+        <span class="move-row__white">${escapeHtml(white.san)}</span>
+        <span class="move-row__black">${black ? escapeHtml(black.san) : ""}</span>
+      </li>
+    `);
+  }
+
+  container.innerHTML = rows.join("");
+  container.scrollTop = container.scrollHeight;
+}
+
+function renderUndoButton(button, state) {
+  if (!button) return;
+  button.disabled = state.undoStack.length === 0 || state.gameOver;
 }
 
 function renderStats(container, stats) {

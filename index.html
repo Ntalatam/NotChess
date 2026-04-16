@@ -72,6 +72,7 @@
               <div class="turn-actions">
                 <button class="btn btn--ghost" type="button" data-help-open>Rules</button>
                 <button class="btn btn--ghost" type="button" id="soundToggle" aria-pressed="true">SFX On</button>
+                <button class="btn btn--ghost" type="button" id="undoButton" disabled>Undo</button>
               </div>
             </div>
 
@@ -105,6 +106,11 @@
             <div class="sidebar-block">
               <span class="block-label">Active Effects</span>
               <ul class="event-list event-list--active" id="activeEvents"></ul>
+            </div>
+
+            <div class="sidebar-block">
+              <span class="block-label">Move History</span>
+              <ol class="move-history" id="moveHistory"></ol>
             </div>
 
             <div class="sidebar-block sidebar-block--log">
