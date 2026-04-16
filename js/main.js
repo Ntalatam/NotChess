@@ -96,8 +96,10 @@ function bindEvents() {
   elements.startForm.addEventListener("submit", handleStart);
   elements.aiOpponentInput.addEventListener("change", updateAiNameState);
   elements.boardCanvas.addEventListener("click", handleBoardClick);
+  elements.boardCanvas.addEventListener("mousedown", handleBoardMouseDown);
   elements.boardCanvas.addEventListener("mousemove", handleBoardMouseMove);
-  elements.boardCanvas.addEventListener("mouseleave", hideMutationTooltip);
+  elements.boardCanvas.addEventListener("mouseleave", handleBoardMouseLeave);
+  window.addEventListener("mouseup", handleBoardMouseUp);
   elements.promotionOverlay.addEventListener("click", handlePromotionClick);
   elements.whiteHand.addEventListener("click", handleCardClick);
   elements.blackHand.addEventListener("click", handleCardClick);
@@ -198,9 +200,43 @@ function handleBoardClick(event) {
   }
 }
 
-function handleBoardMouseMove(event) {
+function handleBoardMouseDown(event) {
+  if (event.button !== 0) return;
+  if (state.gameOver || !elements.menuOverlay.hidden || !elements.promotionOverlay.hidden) return;
+  if (isAiTurn() || state.targeting) return;
+
   const rect = elements.boardCanvas.getBoundingClientRect();
   const square = pointToSquare(boardMetrics, event.clientX - rect.left, event.clientY - rect.top);
+  if (!square) return;
+
+  const piece = getPieceAt(state.board, square.row, square.col);
+  if (!piece || !isPlayersPiece(state, square.row, square.col)) return;
+
+  selectPiece(square.row, square.col);
+  state.dragging = {
+    pieceId: piece.id,
+    from: { row: square.row, col: square.col },
+    cursorX: event.clientX - rect.left,
+    cursorY: event.clientY - rect.top,
+    moved: false,
+  };
+  elements.boardCanvas.dataset.dragging = "true";
+}
+
+function handleBoardMouseMove(event) {
+  const rect = elements.boardCanvas.getBoundingClientRect();
+  const localX = event.clientX - rect.left;
+  const localY = event.clientY - rect.top;
+
+  if (state.dragging) {
+    state.dragging.cursorX = localX;
+    state.dragging.cursorY = localY;
+    state.dragging.moved = true;
+    hideMutationTooltip();
+    return;
+  }
+
+  const square = pointToSquare(boardMetrics, localX, localY);
   if (!square) {
     hideMutationTooltip();
     return;
@@ -220,6 +256,42 @@ function handleBoardMouseMove(event) {
   elements.mutationTooltip.style.left = `${event.clientX + 16}px`;
   elements.mutationTooltip.style.top = `${event.clientY + 16}px`;
   elements.mutationTooltip.hidden = false;
+}
+
+function handleBoardMouseUp(event) {
+  if (!state.dragging) return;
+  const rect = elements.boardCanvas.getBoundingClientRect();
+  const square = pointToSquare(boardMetrics, event.clientX - rect.left, event.clientY - rect.top);
+  const drag = state.dragging;
+  state.dragging = null;
+  delete elements.boardCanvas.dataset.dragging;
+
+  // Click without movement — fall through to click handler behavior (keep selection)
+  if (!drag.moved) return;
+
+  if (!square) return;
+  if (square.row === drag.from.row && square.col === drag.from.col) return;
+
+  const promotionChoices = getPromotionChoices(state.validMoves, square.row, square.col);
+  if (promotionChoices.length > 0) {
+    state.pendingPromotion = {
+      from: drag.from,
+      to: square,
+      choices: promotionChoices,
+    };
+    renderPromotionChoices(promotionChoices);
+    return;
+  }
+
+  if (state.validMoves.some((m) => m.row === square.row && m.col === square.col)) {
+    commitMove(drag.from, square);
+  } else {
+    clearSelection();
+  }
+}
+
+function handleBoardMouseLeave() {
+  hideMutationTooltip();
 }
 
 function hideMutationTooltip() {

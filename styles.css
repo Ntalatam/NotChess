@@ -372,6 +372,7 @@ button {
   max-width: 720px;
   aspect-ratio: 1;
   height: auto;
+  cursor: grab;
   border-radius: var(--radius-md);
   border: 1px solid rgba(240, 192, 64, 0.2);
   background: var(--surface-1);
@@ -379,7 +380,10 @@ button {
     0 0 0 1px rgba(255, 255, 255, 0.03),
     0 0 80px rgba(0, 229, 255, 0.06),
     var(--shadow-lg);
-  cursor: pointer;
+}
+
+#boardCanvas[data-dragging="true"] {
+  cursor: grabbing;
 }
 
 .board-vignette {

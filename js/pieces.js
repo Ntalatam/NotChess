@@ -80,12 +80,14 @@ export function pieceLabel(piece) {
 export function drawPieces(ctx, metrics, state, frame, now) {
   drawCaptureEffects(ctx, metrics, state.effects.captures, now);
   const activeMove = getActiveMove(state.animation, now);
+  const dragging = state.dragging;
 
   for (let row = 0; row < 8; row += 1) {
     for (let col = 0; col < 8; col += 1) {
       const piece = state.board[row][col];
       if (!piece) continue;
       if (activeMove?.pieceId === piece.id) continue;
+      if (dragging?.pieceId === piece.id) continue;
       drawPiece(ctx, metrics, piece, row, col, frame);
     }
   }
@@ -98,6 +100,23 @@ export function drawPieces(ctx, metrics, state, frame, now) {
     const y = from.y + (to.y - from.y) * progress;
     drawPieceAt(ctx, activeMove.piece, x, y, from.size, frame, true);
   }
+
+  if (dragging && dragging.cursorX != null) {
+    const piece = findPieceById(state.board, dragging.pieceId);
+    if (piece) {
+      const size = metrics.squareSize;
+      drawPieceAt(ctx, piece, dragging.cursorX - size / 2, dragging.cursorY - size / 2, size, frame, true);
+    }
+  }
+}
+
+function findPieceById(board, pieceId) {
+  for (let row = 0; row < 8; row += 1) {
+    for (let col = 0; col < 8; col += 1) {
+      if (board[row][col]?.id === pieceId) return board[row][col];
+    }
+  }
+  return null;
 }
 
 export function drawPiece(ctx, metrics, piece, row, col, frame) {

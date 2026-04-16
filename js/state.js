@@ -88,6 +88,7 @@ export function createInitialState(settings = {}, rng = Math.random) {
     moveHistory: [],
     lastMove: null,
     undoStack: [],
+    dragging: null,
     clocks: {
       white: timerMs,
       black: timerMs,
