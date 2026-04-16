@@ -264,6 +264,7 @@ export function startTurn(state) {
   state.turnActions.cardPlayed = false;
   drawCard(state, state.turn);
   tickFrozenPieces(state, state.turn);
+  resolveExpiringEvents(state);
   tickChaosEvents(state);
   state.chaosMeter += chaosGain(state);
   if (state.chaosMeter >= 100) {
@@ -497,6 +498,25 @@ export function hasChaosEvent(state, type) {
 
 function addChaosEvent(state, type, name, turnsLeft, color = null) {
   state.chaosEvents.push({ type, name, turnsLeft, color });
+}
+
+function resolveExpiringEvents(state) {
+  for (const event of state.chaosEvents) {
+    if (event.type === "KINGS_GAMBLE_CHECK" && event.turnsLeft === 1) {
+      resolveKingsGambleBacklash(state, event);
+    }
+  }
+}
+
+function resolveKingsGambleBacklash(state, event) {
+  const color = event.color;
+  if (!color) return;
+  const pieces = allPieces(state).filter(({ piece }) => piece.color === color && piece.type !== "k");
+  if (!pieces.length) return;
+  const target = pieces[Math.floor(state.rng() * pieces.length)];
+  state.board[target.row][target.col] = null;
+  addLog(state, `King's Gamble backfired — ${pieceLabel(target.piece)} was lost.`);
+  syncChessToBoard(state, state.turn);
 }
 
 function tickChaosEvents(state) {

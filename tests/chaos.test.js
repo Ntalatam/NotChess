@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { grantMutation } from "../js/mutations.js";
 import { getLegalMoves, moveFromNotation, syncChessToBoard } from "../js/rules.js";
 import { createInitialState } from "../js/state.js";
-import { drawCard, getCardTargetSquares, hasChaosEvent, playCard, setupChaosDeck } from "../js/chaos.js";
+import { drawCard, getCardTargetSquares, hasChaosEvent, playCard, setupChaosDeck, startTurn } from "../js/chaos.js";
 
 test("chaos deck contains forty cards and deals opening hands", () => {
   const state = createInitialState();
@@ -105,6 +105,20 @@ test("the switch lets white control black pieces", () => {
   const whitePawn = state.board[6][4];
   const whiteMoves = getLegalMoves(state, whitePawn.id);
   assert.equal(whiteMoves.length, 0, "white cannot move own pieces during THE_SWITCH");
+});
+
+test("kings gamble backlash destroys a random piece of the triggering player", () => {
+  const state = createInitialState({}, () => 0);
+  setupChaosDeck(state);
+  state.chaosEvents.push({ type: "KINGS_GAMBLE_CHECK", name: "King's Gamble Backlash", turnsLeft: 1, color: "white" });
+
+  const whitePiecesBefore = state.board.flat().filter((p) => p?.color === "white" && p.type !== "k").length;
+
+  startTurn(state);
+
+  const whitePiecesAfter = state.board.flat().filter((p) => p?.color === "white" && p.type !== "k").length;
+  assert.equal(whitePiecesAfter, whitePiecesBefore - 1, "one white non-king piece was destroyed");
+  assert.equal(state.chaosEvents.some((e) => e.type === "KINGS_GAMBLE_CHECK"), false, "event was removed after tick");
 });
 
 test("mutation injection can grant a mutation through card play", () => {
