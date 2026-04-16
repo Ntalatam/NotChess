@@ -1,0 +1,20 @@
+{
+  "name": "Wacko Chess",
+  "short_name": "Wacko Chess",
+  "description": "A chaotic two-player chess variant with mutations, hazards, and chaos cards.",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#06070c",
+  "theme_color": "#f0c040",
+  "categories": ["games", "entertainment"],
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
