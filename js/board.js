@@ -127,7 +127,7 @@ function drawSquare(ctx, metrics, row, col, frame) {
 function drawCoordinates(ctx, metrics) {
   ctx.save();
   ctx.fillStyle = "rgba(201, 194, 223, 0.66)";
-  ctx.font = "700 12px Space Mono, monospace";
+  ctx.font = '700 12px Inter, "Helvetica Neue", sans-serif';
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
 

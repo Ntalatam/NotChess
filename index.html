@@ -11,97 +11,118 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Crimson+Pro:ital,wght@0,500;0,700;1,500&family=Space+Mono:wght@400;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Crimson+Pro:ital,wght@0,500;0,700;1,500&family=Inter:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
     <div class="app-shell" id="appShell" data-screen="menu">
-      <main class="game-layout" aria-label="Wacko Chess game board">
-        <section class="arena" aria-label="Board and players">
-          <div class="player-panel player-panel--top" id="blackHud"></div>
-          <div class="hand-row hand-row--opponent" id="blackHand" aria-label="Black hand"></div>
 
-          <div class="board-stage">
-            <canvas
-              id="boardCanvas"
-              width="760"
-              height="760"
-              aria-label="Wacko Chess board"
-            ></canvas>
-            <div class="board-vignette" aria-hidden="true"></div>
-            <div class="announcement" id="announcement" aria-live="polite"></div>
-            <div class="major-chaos" id="majorChaosOverlay" hidden>
-              <p>Major Chaos</p>
-              <strong id="majorChaosName">The Great Scramble</strong>
-            </div>
-            <div class="mutation-tooltip" id="mutationTooltip" role="tooltip" hidden></div>
-            <div class="promotion-popover" id="promotionOverlay" hidden>
-              <p>Promote</p>
-              <div class="promotion-options">
-                <button type="button" data-piece="q" aria-label="Promote to queen">♕</button>
-                <button type="button" data-piece="r" aria-label="Promote to rook">♖</button>
-                <button type="button" data-piece="b" aria-label="Promote to bishop">♗</button>
-                <button type="button" data-piece="n" aria-label="Promote to knight">♘</button>
+      <main class="game-layout" aria-label="Wacko Chess game board">
+
+        <!-- ── Top bar: Black player ── -->
+        <header class="top-bar">
+          <div class="player-panel player-panel--top" id="blackHud"></div>
+        </header>
+
+        <!-- ── Center row: Board + Sidebar ── -->
+        <div class="center-row">
+          <section class="arena" aria-label="Board and players">
+
+            <div class="hand-row hand-row--opponent" id="blackHand" aria-label="Black hand"></div>
+
+            <div class="board-stage">
+              <canvas
+                id="boardCanvas"
+                width="760"
+                height="760"
+                aria-label="Wacko Chess board"
+              ></canvas>
+              <div class="board-vignette" aria-hidden="true"></div>
+              <div class="announcement" id="announcement" aria-live="polite"></div>
+              <div class="major-chaos" id="majorChaosOverlay" hidden>
+                <p>Major Chaos</p>
+                <strong id="majorChaosName">The Great Scramble</strong>
+              </div>
+              <div class="mutation-tooltip" id="mutationTooltip" role="tooltip" hidden></div>
+              <div class="promotion-popover" id="promotionOverlay" hidden>
+                <p>Promote</p>
+                <div class="promotion-options">
+                  <button type="button" data-piece="q" aria-label="Promote to queen">&#9813;</button>
+                  <button type="button" data-piece="r" aria-label="Promote to rook">&#9814;</button>
+                  <button type="button" data-piece="b" aria-label="Promote to bishop">&#9815;</button>
+                  <button type="button" data-piece="n" aria-label="Promote to knight">&#9816;</button>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div class="hand-row hand-row--player" id="whiteHand" aria-label="White hand"></div>
+            <div class="hand-row hand-row--player" id="whiteHand" aria-label="White hand"></div>
+
+          </section>
+
+          <aside class="sidebar" id="sidebar" aria-label="Game status">
+
+            <div class="sidebar-block sidebar-block--turn">
+              <div class="turn-indicator">
+                <span class="turn-pip"></span>
+                <h2 id="turnStatus">Turn 1 - White</h2>
+              </div>
+              <p id="roundStatus" class="turn-subtitle">Local duel</p>
+              <div class="turn-actions">
+                <button class="btn btn--ghost" type="button" data-help-open>Rules</button>
+                <button class="btn btn--ghost" type="button" id="soundToggle" aria-pressed="true">SFX On</button>
+              </div>
+            </div>
+
+            <div class="sidebar-block">
+              <div class="block-header">
+                <span class="block-label">Chaos Meter</span>
+                <strong class="block-value" id="chaosCountdown">10 turns</strong>
+              </div>
+              <div
+                class="chaos-meter"
+                role="meter"
+                aria-label="Chaos meter"
+                aria-valuemin="0"
+                aria-valuemax="100"
+                aria-valuenow="0"
+              >
+                <span id="chaosMeterFill"></span>
+              </div>
+            </div>
+
+            <div class="sidebar-block">
+              <div class="block-header">
+                <span class="block-label">Deck</span>
+                <strong class="block-value" id="deckStatus">40 / 0</strong>
+              </div>
+              <div class="deck-visual" aria-hidden="true">
+                <span></span><span></span><span></span>
+              </div>
+            </div>
+
+            <div class="sidebar-block">
+              <span class="block-label">Active Effects</span>
+              <ul class="event-list event-list--active" id="activeEvents"></ul>
+            </div>
+
+            <div class="sidebar-block sidebar-block--log">
+              <span class="block-label">Event Log</span>
+              <ol class="event-log" id="eventLog"></ol>
+            </div>
+
+          </aside>
+        </div>
+
+        <!-- ── Bottom bar: White player ── -->
+        <footer class="bottom-bar">
           <div class="player-panel player-panel--bottom" id="whiteHud"></div>
-        </section>
+        </footer>
 
-        <aside class="sidebar" id="sidebar" aria-label="Game status">
-          <div class="sidebar-section sidebar-section--turn">
-            <p class="section-kicker">Turn</p>
-            <h2 id="turnStatus">Turn 1 - White</h2>
-            <p id="roundStatus">Local duel</p>
-            <button class="help-toggle" type="button" data-help-open>Rules</button>
-            <button class="sound-toggle" type="button" id="soundToggle" aria-pressed="true">SFX On</button>
-          </div>
-
-          <div class="sidebar-section">
-            <div class="section-heading">
-              <p class="section-kicker">Chaos Meter</p>
-              <strong id="chaosCountdown">10 turns</strong>
-            </div>
-            <div
-              class="chaos-meter"
-              role="meter"
-              aria-label="Chaos meter"
-              aria-valuemin="0"
-              aria-valuemax="100"
-              aria-valuenow="0"
-            >
-              <span id="chaosMeterFill"></span>
-            </div>
-          </div>
-
-          <div class="sidebar-section">
-            <div class="section-heading">
-              <p class="section-kicker">Deck</p>
-              <strong id="deckStatus">40 / 0</strong>
-            </div>
-            <div class="deck-stack" aria-hidden="true">
-              <span></span>
-              <span></span>
-              <span></span>
-            </div>
-          </div>
-
-          <div class="sidebar-section">
-            <p class="section-kicker">Active Events</p>
-            <ul class="event-list event-list--active" id="activeEvents"></ul>
-          </div>
-
-          <div class="sidebar-section sidebar-section--log">
-            <p class="section-kicker">Event Log</p>
-            <ol class="event-log" id="eventLog"></ol>
-          </div>
-        </aside>
       </main>
 
+      <!-- ── Menu overlay ── -->
       <div class="menu-overlay" id="menuOverlay" role="dialog" aria-modal="true" aria-labelledby="menuTitle">
         <div class="menu-hero" aria-hidden="true">
           <canvas id="menuCanvas" width="1280" height="720"></canvas>
@@ -109,8 +130,9 @@
         <form class="start-panel" id="startForm">
           <p class="eyebrow">v1.3 Local / AI</p>
           <h1 id="menuTitle">Wacko Chess</h1>
-          <button class="rules-link" type="button" data-help-open>Rules & Controls</button>
-          <div class="settings-grid">
+          <button class="btn btn--outline-cyan" type="button" data-help-open>Rules & Controls</button>
+
+          <div class="form-grid">
             <label class="field">
               <span>White Player</span>
               <input id="whiteNameInput" name="whiteName" autocomplete="off" maxlength="20" value="White" />
@@ -128,85 +150,45 @@
 
           <fieldset class="segmented">
             <legend>Chaos Intensity</legend>
-            <label>
-              <input type="radio" name="intensity" value="mild" />
-              <span>Mild</span>
-            </label>
-            <label>
-              <input type="radio" name="intensity" value="standard" checked />
-              <span>Standard</span>
-            </label>
-            <label>
-              <input type="radio" name="intensity" value="unhinged" />
-              <span>Unhinged</span>
-            </label>
+            <label><input type="radio" name="intensity" value="mild" /><span>Mild</span></label>
+            <label><input type="radio" name="intensity" value="standard" checked /><span>Standard</span></label>
+            <label><input type="radio" name="intensity" value="unhinged" /><span>Unhinged</span></label>
           </fieldset>
 
           <fieldset class="segmented segmented--timer">
             <legend>Timer</legend>
-            <label>
-              <input type="radio" name="timer" value="unlimited" checked />
-              <span>Unlimited</span>
-            </label>
-            <label>
-              <input type="radio" name="timer" value="10" />
-              <span>10 min</span>
-            </label>
-            <label>
-              <input type="radio" name="timer" value="5" />
-              <span>5 min</span>
-            </label>
+            <label><input type="radio" name="timer" value="unlimited" checked /><span>Unlimited</span></label>
+            <label><input type="radio" name="timer" value="10" /><span>10 min</span></label>
+            <label><input type="radio" name="timer" value="5" /><span>5 min</span></label>
           </fieldset>
 
           <div class="stats-strip" id="statsStrip"></div>
-          <button class="primary-action" type="submit">Begin Match</button>
+          <button class="btn btn--primary" type="submit">Begin Match</button>
         </form>
       </div>
 
+      <!-- ── Help overlay ── -->
       <div class="help-overlay" id="helpOverlay" role="dialog" aria-modal="true" aria-labelledby="helpTitle" hidden>
         <section class="help-panel">
           <div class="help-heading">
             <p class="eyebrow">v1.3 Field Guide</p>
             <h2 id="helpTitle">How To Play</h2>
-            <button class="icon-button" type="button" data-help-close aria-label="Close rules">×</button>
+            <button class="icon-btn" type="button" data-help-close aria-label="Close rules">&times;</button>
           </div>
-
           <div class="help-grid">
-            <article class="help-card">
-              <span>1</span>
-              <h3>Your Turn</h3>
-              <p>Draw up to four cards, then make one legal chess move. You may play one chaos card before that move.</p>
-            </article>
-            <article class="help-card">
-              <span>2</span>
-              <h3>Moving</h3>
-              <p>Click one of your pieces, then click a glowing target square. Promotion choices appear beside the board.</p>
-            </article>
-            <article class="help-card">
-              <span>3</span>
-              <h3>Cards</h3>
-              <p>Click a face-up card to play it. If it needs targets, legal squares flash; press Escape to cancel.</p>
-            </article>
-            <article class="help-card">
-              <span>4</span>
-              <h3>Mutations</h3>
-              <p>Captures can mutate the attacker. Hover colored piece badges to see powers like Shielded, Volatile, or Wild.</p>
-            </article>
-            <article class="help-card">
-              <span>5</span>
-              <h3>Tiles</h3>
-              <p>Animated board tiles change movement: Lava and Void destroy, Ice slides, Portals warp, Mines explode.</p>
-            </article>
-            <article class="help-card">
-              <span>6</span>
-              <h3>Winning</h3>
-              <p>Checkmate still wins. Kings can also be destroyed by Wacko effects; simultaneous King destruction is a draw.</p>
-            </article>
+            <article class="help-card"><span>1</span><h3>Your Turn</h3><p>Draw up to four cards, then make one legal chess move. You may play one chaos card before that move.</p></article>
+            <article class="help-card"><span>2</span><h3>Moving</h3><p>Click one of your pieces, then click a glowing target square. Promotion choices appear beside the board.</p></article>
+            <article class="help-card"><span>3</span><h3>Cards</h3><p>Click a face-up card to play it. If it needs targets, legal squares flash; press Escape to cancel.</p></article>
+            <article class="help-card"><span>4</span><h3>Mutations</h3><p>Captures can mutate the attacker. Hover colored piece badges to see powers like Shielded, Volatile, or Wild.</p></article>
+            <article class="help-card"><span>5</span><h3>Tiles</h3><p>Animated board tiles change movement: Lava and Void destroy, Ice slides, Portals warp, Mines explode.</p></article>
+            <article class="help-card"><span>6</span><h3>Winning</h3><p>Checkmate still wins. Kings can also be destroyed by Wacko effects; simultaneous King destruction is a draw.</p></article>
           </div>
         </section>
       </div>
 
+      <!-- ── End overlay ── -->
       <div class="end-overlay" id="endOverlay" aria-live="polite" hidden></div>
+
     </div>
 
     <script type="module" src="js/main.js"></script>
