@@ -74,9 +74,29 @@ export function drawBoard(ctx, metrics, frame, options = {}) {
 
   drawCoordinates(ctx, metrics);
   drawLastMove(ctx, metrics, options.lastMove);
+  drawCheckHighlight(ctx, metrics, options.checkSquare, frame);
   drawSelection(ctx, metrics, options.selected, frame);
   drawValidMoves(ctx, metrics, options.validMoves || [], frame);
   drawTargeting(ctx, metrics, options.targetSquares || [], frame);
+}
+
+function drawCheckHighlight(ctx, metrics, square, frame) {
+  if (!square) return;
+  const { x, y, size } = squareRect(metrics, square.row, square.col);
+  const pulse = Math.sin(frame / 6) * 0.5 + 0.5;
+  ctx.save();
+  const gradient = ctx.createRadialGradient(
+    x + size / 2, y + size / 2, size * 0.15,
+    x + size / 2, y + size / 2, size * 0.7
+  );
+  gradient.addColorStop(0, `rgba(255, 59, 92, ${0.55 + pulse * 0.2})`);
+  gradient.addColorStop(1, "rgba(255, 59, 92, 0)");
+  ctx.fillStyle = gradient;
+  ctx.fillRect(x, y, size, size);
+  ctx.strokeStyle = `rgba(255, 59, 92, ${0.6 + pulse * 0.3})`;
+  ctx.lineWidth = 3;
+  ctx.strokeRect(x + 3, y + 3, size - 6, size - 6);
+  ctx.restore();
 }
 
 function drawLastMove(ctx, metrics, lastMove) {

@@ -588,6 +588,7 @@ function tick() {
     validMoves: getDisplayMoves(state.validMoves),
     targetSquares: state.targetSquares,
     lastMove: state.lastMove,
+    checkSquare: state.check ? findKingSquare(state) : null,
   });
   drawTiles(boardCtx, boardMetrics, state.specialTiles, frame);
   drawPieces(boardCtx, boardMetrics, state, frame, now);
@@ -792,6 +793,18 @@ function loadJson(key, fallback) {
   } catch {
     return fallback;
   }
+}
+
+function findKingSquare(gameState) {
+  for (let row = 0; row < 8; row += 1) {
+    for (let col = 0; col < 8; col += 1) {
+      const piece = gameState.board[row]?.[col];
+      if (piece?.type === "k" && piece.color === gameState.turn) {
+        return { row, col };
+      }
+    }
+  }
+  return null;
 }
 
 function cleanName(value, fallback) {
