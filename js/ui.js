@@ -37,9 +37,9 @@ export function renderEndOverlay(container, state) {
         <span>${state.cardsPlayed} cards played</span>
       </div>
       <div class="end-actions">
-        <button class="primary-action" type="button" data-end-action="restart">Play Again</button>
-        <button class="secondary-action" type="button" data-end-action="swap">Swap &amp; Rematch</button>
-        <button class="secondary-action" type="button" data-end-action="menu">Main Menu</button>
+        <button class="btn btn--primary" type="button" data-end-action="restart">Play Again</button>
+        <button class="btn btn--ghost" type="button" data-end-action="swap">Swap &amp; Rematch</button>
+        <button class="btn btn--ghost" type="button" data-end-action="menu">Main Menu</button>
       </div>
     </section>
   `;
