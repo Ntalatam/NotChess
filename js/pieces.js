@@ -194,20 +194,54 @@ function drawMutationBadges(ctx, piece, x, y, size) {
   });
 }
 
+const PARTICLE_COUNT = 10;
+const PARTICLE_COLORS = [
+  "255, 59, 92",
+  "240, 192, 64",
+  "0, 229, 255",
+];
+
 function drawCaptureEffects(ctx, metrics, captures, now) {
   ctx.save();
   for (const capture of captures) {
     const age = now - capture.startedAt;
     const progress = Math.min(1, age / capture.duration);
     const { x, y, size } = squareRect(metrics, capture.row, capture.col);
+    const cx = x + size / 2;
+    const cy = y + size / 2;
     const alpha = 1 - progress;
+
+    // Expanding ring
     ctx.strokeStyle = `rgba(255, 59, 92, ${alpha * 0.76})`;
     ctx.fillStyle = `rgba(255, 59, 92, ${alpha * 0.16})`;
     ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.arc(x + size / 2, y + size / 2, size * (0.18 + progress * 0.5), 0, Math.PI * 2);
+    ctx.arc(cx, cy, size * (0.18 + progress * 0.5), 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
+
+    // Particle burst
+    if (!capture.particles) {
+      capture.particles = [];
+      const seed = capture.row * 8 + capture.col;
+      for (let i = 0; i < PARTICLE_COUNT; i += 1) {
+        const angle = ((seed * 7 + i * 137.5) % 360) * (Math.PI / 180);
+        const speed = 0.6 + ((seed * 3 + i * 17) % 50) / 100;
+        const colorIdx = (seed + i) % PARTICLE_COLORS.length;
+        capture.particles.push({ angle, speed, color: PARTICLE_COLORS[colorIdx] });
+      }
+    }
+
+    for (const p of capture.particles) {
+      const dist = size * progress * p.speed;
+      const px = cx + Math.cos(p.angle) * dist;
+      const py = cy + Math.sin(p.angle) * dist;
+      const radius = Math.max(1.5, size * 0.04 * (1 - progress));
+      ctx.fillStyle = `rgba(${p.color}, ${alpha * 0.9})`;
+      ctx.beginPath();
+      ctx.arc(px, py, radius, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
   ctx.restore();
 }
