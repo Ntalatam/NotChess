@@ -1336,6 +1336,116 @@ button {
   }
 }
 
+@media (max-width: 700px) {
+  .game-layout {
+    padding: var(--sp-2);
+    gap: var(--sp-2);
+  }
+
+  #boardCanvas {
+    width: calc(100vw - 24px);
+    min-width: 280px;
+    max-width: 100%;
+  }
+
+  .hand-row {
+    gap: var(--sp-1);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+  }
+
+  .chaos-card {
+    min-width: 130px;
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+    padding: var(--sp-2) var(--sp-3);
+  }
+
+  .chaos-card h3 {
+    font-size: 13px;
+  }
+
+  .chaos-card p,
+  .chaos-card em {
+    font-size: 10px;
+  }
+
+  .sidebar {
+    max-height: none;
+    gap: var(--sp-2);
+  }
+
+  .sidebar-block {
+    min-width: 0;
+    flex: 1 1 100%;
+  }
+
+  .turn-actions {
+    flex-wrap: wrap;
+  }
+
+  .player-panel {
+    flex-wrap: wrap;
+    gap: var(--sp-1);
+  }
+
+  .hud-stat-row {
+    gap: var(--sp-1);
+  }
+
+  .hud-chip {
+    font-size: 10px;
+    padding: 2px 6px;
+  }
+
+  .start-panel {
+    padding: var(--sp-5) var(--sp-4);
+  }
+
+  .start-panel h1 {
+    font-size: 2rem;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .segmented {
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--sp-1);
+  }
+
+  .segmented span {
+    min-height: 36px;
+    font-size: 12px;
+  }
+
+  .help-grid {
+    grid-template-columns: 1fr;
+    gap: var(--sp-3);
+  }
+
+  .help-panel {
+    padding: var(--sp-4) var(--sp-3);
+    max-width: 100%;
+  }
+
+  .end-panel {
+    padding: var(--sp-5) var(--sp-4);
+    max-width: 100%;
+  }
+
+  .end-actions {
+    flex-direction: column;
+    gap: var(--sp-2);
+  }
+
+  .move-history {
+    max-height: 120px;
+  }
+}
+
 /* ── Reduced motion ── */
 @media (prefers-reduced-motion: reduce) {
   *,
