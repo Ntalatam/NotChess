@@ -85,6 +85,8 @@ let state = createInitialState({ stats: loadStats() });
 let boardMetrics;
 let frame = 0;
 let aiTimer = null;
+let hoverSquare = null;
+let hoverMovesCache = null;
 
 function init() {
   applyStoredSettings();
@@ -260,8 +262,15 @@ function handleBoardMouseMove(event) {
 
   const square = pointToSquare(boardMetrics, localX, localY);
   if (!square) {
+    hoverSquare = null;
+    hoverMovesCache = null;
     hideMutationTooltip();
     return;
+  }
+
+  if (!hoverSquare || hoverSquare.row !== square.row || hoverSquare.col !== square.col) {
+    hoverSquare = square;
+    hoverMovesCache = null;
   }
 
   const piece = getPieceAt(state.board, square.row, square.col);
@@ -313,7 +322,20 @@ function handleBoardMouseUp(event) {
 }
 
 function handleBoardMouseLeave() {
+  hoverSquare = null;
+  hoverMovesCache = null;
   hideMutationTooltip();
+}
+
+function getHoverMoves() {
+  if (state.selected || state.dragging || state.targeting || state.gameOver) return [];
+  if (!hoverSquare) return [];
+  const piece = getPieceAt(state.board, hoverSquare.row, hoverSquare.col);
+  if (!piece || !isPlayersPiece(state, hoverSquare.row, hoverSquare.col)) return [];
+  if (!hoverMovesCache) {
+    hoverMovesCache = getDisplayMoves(getLegalMoves(state, piece.id));
+  }
+  return hoverMovesCache;
 }
 
 function hideMutationTooltip() {
@@ -589,6 +611,7 @@ function tick() {
     targetSquares: state.targetSquares,
     lastMove: state.lastMove,
     checkSquare: state.check ? findKingSquare(state) : null,
+    hoverMoves: getHoverMoves(),
   });
   drawTiles(boardCtx, boardMetrics, state.specialTiles, frame);
   drawPieces(boardCtx, boardMetrics, state, frame, now);

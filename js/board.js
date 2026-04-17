@@ -75,6 +75,7 @@ export function drawBoard(ctx, metrics, frame, options = {}) {
   drawCoordinates(ctx, metrics);
   drawLastMove(ctx, metrics, options.lastMove);
   drawCheckHighlight(ctx, metrics, options.checkSquare, frame);
+  drawHoverHints(ctx, metrics, options.hoverMoves || [], frame);
   drawSelection(ctx, metrics, options.selected, frame);
   drawValidMoves(ctx, metrics, options.validMoves || [], frame);
   drawTargeting(ctx, metrics, options.targetSquares || [], frame);
@@ -172,6 +173,20 @@ function drawCoordinates(ctx, metrics) {
     ctx.fillText(String(8 - index), metrics.originX - 17, metrics.originY + index * metrics.squareSize + metrics.squareSize / 2);
   }
 
+  ctx.restore();
+}
+
+function drawHoverHints(ctx, metrics, moves) {
+  if (!moves.length) return;
+  ctx.save();
+  for (const move of moves) {
+    const { x, y, size } = squareRect(metrics, move.row, move.col);
+    const radius = Math.max(5, size * 0.09);
+    ctx.fillStyle = "rgba(255, 255, 255, 0.12)";
+    ctx.beginPath();
+    ctx.arc(x + size / 2, y + size / 2, radius, 0, Math.PI * 2);
+    ctx.fill();
+  }
   ctx.restore();
 }
 
