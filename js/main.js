@@ -24,6 +24,7 @@ import {
 } from "./rules.js";
 import {
   CONFIG,
+  agreeDraw,
   checkTimeout,
   createInitialState,
   flushActiveClock,
@@ -32,6 +33,7 @@ import {
   isUnlimited,
   pauseClock,
   pushUndoSnapshot,
+  resignGame,
   restoreUndoSnapshot,
   resumeClock,
   startClock,
@@ -72,6 +74,8 @@ const elements = {
   majorChaosName: document.querySelector("#majorChaosName"),
   soundToggle: document.querySelector("#soundToggle"),
   undoButton: document.querySelector("#undoButton"),
+  resignButton: document.querySelector("#resignButton"),
+  drawButton: document.querySelector("#drawButton"),
   moveHistory: document.querySelector("#moveHistory"),
   helpOverlay: document.querySelector("#helpOverlay"),
   endOverlay: document.querySelector("#endOverlay"),
@@ -105,8 +109,26 @@ function bindEvents() {
   elements.blackHand.addEventListener("click", handleCardClick);
   elements.endOverlay.addEventListener("click", handleEndClick);
   elements.undoButton?.addEventListener("click", handleUndo);
+  elements.resignButton?.addEventListener("click", handleResign);
+  elements.drawButton?.addEventListener("click", handleDraw);
   document.addEventListener("click", handleHelpClick);
   window.addEventListener("keydown", handleKeydown);
+}
+
+function handleResign() {
+  if (state.gameOver) return;
+  const who = state.turn;
+  const whoName = state.players[who].name;
+  if (!window.confirm(`${whoName}, resign this match?`)) return;
+  resignGame(state, who);
+  handleGameOver();
+}
+
+function handleDraw() {
+  if (state.gameOver) return;
+  if (!window.confirm("End the match as a draw?")) return;
+  agreeDraw(state);
+  handleGameOver();
 }
 
 function handleUndo() {
@@ -378,8 +400,11 @@ function handleEndClick(event) {
   const button = event.target.closest("button[data-end-action]");
   if (!button) return;
 
-  if (button.dataset.endAction === "restart") {
+  const action = button.dataset.endAction;
+  if (action === "restart") {
     restartMatch(false);
+  } else if (action === "swap") {
+    restartMatch(false, { swap: true });
   } else {
     restartMatch(true);
   }
@@ -499,9 +524,17 @@ function renderPromotionChoices(choices) {
   pauseClock(state);
 }
 
-function restartMatch(showMenu) {
+function restartMatch(showMenu, { swap = false } = {}) {
   window.clearTimeout(aiTimer);
   const settings = readSettingsForm();
+  if (swap && !settings.aiOpponent) {
+    const prevWhite = settings.whiteName;
+    settings.whiteName = settings.blackName;
+    settings.blackName = prevWhite;
+    elements.whiteNameInput.value = settings.whiteName;
+    elements.blackNameInput.value = settings.blackName;
+    persistSettings(settings);
+  }
   state = createInitialState({ ...settings, stats: loadStats() });
   setupChaosDeck(state);
   if (!showMenu) beginTurn();

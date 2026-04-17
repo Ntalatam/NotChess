@@ -297,6 +297,36 @@ function clone(value) {
   return JSON.parse(JSON.stringify(value));
 }
 
+export function resignGame(state, color) {
+  if (state.gameOver) return false;
+  const winner = color === "white" ? "black" : "white";
+  state.gameOver = true;
+  state.winner = winner;
+  state.gameOverReason = `${capitalizeColor(color)} resigned`;
+  state.wackoGameOver = { winner, reason: state.gameOverReason };
+  state.clocks.paused = true;
+  state.clocks.startedAt = null;
+  addLog(state, `${capitalizeColor(color)} resigned.`);
+  return true;
+}
+
+export function agreeDraw(state) {
+  if (state.gameOver) return false;
+  state.gameOver = true;
+  state.winner = null;
+  state.gameOverReason = "Draw by agreement";
+  state.wackoGameOver = { winner: null, reason: state.gameOverReason };
+  state.draw = true;
+  state.clocks.paused = true;
+  state.clocks.startedAt = null;
+  addLog(state, "Players agreed to a draw.");
+  return true;
+}
+
+function capitalizeColor(color) {
+  return color[0].toUpperCase() + color.slice(1);
+}
+
 export function checkTimeout(state, now = Date.now()) {
   if (state.clocks.white == null || state.gameOver) return false;
   flushActiveClock(state, now);

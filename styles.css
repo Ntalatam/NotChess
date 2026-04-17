@@ -839,6 +839,17 @@ button {
   border-color: rgba(255, 255, 255, 0.14);
 }
 
+.btn--danger {
+  color: var(--red);
+  border-color: rgba(255, 59, 92, 0.22);
+}
+
+.btn--danger:hover {
+  color: var(--red);
+  background: rgba(255, 59, 92, 0.14);
+  border-color: rgba(255, 59, 92, 0.4);
+}
+
 .btn--outline-cyan {
   color: var(--cyan);
   background: rgba(0, 229, 255, 0.06);
