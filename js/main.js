@@ -701,6 +701,15 @@ function handleMajorChaos(event) {
   elements.majorChaosName.textContent = event.name;
   elements.majorChaosOverlay.hidden = false;
   playTone("chaos");
+
+  const stage = elements.boardCanvas.closest(".board-stage");
+  if (stage) {
+    stage.classList.remove("is-shaking");
+    void stage.offsetWidth;
+    stage.classList.add("is-shaking");
+    stage.addEventListener("animationend", () => stage.classList.remove("is-shaking"), { once: true });
+  }
+
   window.clearTimeout(handleMajorChaos.timer);
   handleMajorChaos.timer = window.setTimeout(() => {
     elements.majorChaosOverlay.hidden = true;

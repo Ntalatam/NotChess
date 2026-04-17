@@ -106,6 +106,7 @@ function renderSidebar(state, elements) {
   elements.chaosCountdown.textContent = `${Math.max(0, 10 - Math.ceil(state.chaosMeter / 10))} turns`;
   elements.chaosMeterFill.style.width = `${state.chaosMeter}%`;
   elements.chaosMeterFill.parentElement.setAttribute("aria-valuenow", String(state.chaosMeter));
+  elements.chaosMeterFill.parentElement.classList.toggle("is-critical", state.chaosMeter >= 80);
   elements.deckStatus.textContent = `${state.deck.remaining} / ${state.deck.discarded}`;
 
   const activeEvents = [
