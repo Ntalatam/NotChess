@@ -1,4 +1,5 @@
 import { CARD_DEFINITIONS } from "./chaos.js";
+import { CONFIG } from "./state.js";
 
 const CARD_STUBS = [
   ["Buff", "Mutation Injection", "Something sharp wakes up."],
@@ -52,7 +53,7 @@ export function showAnnouncement(elements, message, tone = "info") {
   window.clearTimeout(showAnnouncement.timer);
   showAnnouncement.timer = window.setTimeout(() => {
     elements.announcement.classList.remove("is-visible");
-  }, 1800);
+  }, CONFIG.announcementMs);
 }
 
 function renderHud(container, player, color, active) {
@@ -106,7 +107,7 @@ function renderSidebar(state, elements) {
   elements.chaosCountdown.textContent = `${Math.max(0, 10 - Math.ceil(state.chaosMeter / 10))} turns`;
   elements.chaosMeterFill.style.width = `${state.chaosMeter}%`;
   elements.chaosMeterFill.parentElement.setAttribute("aria-valuenow", String(state.chaosMeter));
-  elements.chaosMeterFill.parentElement.classList.toggle("is-critical", state.chaosMeter >= 80);
+  elements.chaosMeterFill.parentElement.classList.toggle("is-critical", state.chaosMeter >= CONFIG.chaosCriticalThreshold);
   elements.deckStatus.textContent = `${state.deck.remaining} / ${state.deck.discarded}`;
 
   const activeEvents = [

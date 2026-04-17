@@ -505,7 +505,7 @@ function commitMove(from, to, promotion = undefined) {
       row: result.to.row,
       col: result.to.col,
       startedAt: performance.now(),
-      duration: 420,
+      duration: CONFIG.captureEffectMs,
     });
   }
 
@@ -632,7 +632,7 @@ function updateClockDisplay() {
     if (!clockEl) continue;
     const remaining = getRemainingMs(state, color);
     clockEl.textContent = formatClock(remaining);
-    clockEl.classList.toggle("is-low", remaining != null && remaining <= 30000);
+    clockEl.classList.toggle("is-low", remaining != null && remaining <= CONFIG.lowTimeWarningMs);
     clockEl.classList.toggle("is-active", state.clocks.activeColor === color && !state.clocks.paused);
   }
 }
@@ -713,7 +713,7 @@ function handleMajorChaos(event) {
   window.clearTimeout(handleMajorChaos.timer);
   handleMajorChaos.timer = window.setTimeout(() => {
     elements.majorChaosOverlay.hidden = true;
-  }, 1500);
+  }, CONFIG.majorChaosBannerMs);
 }
 
 function maybeQueueAiTurn() {
@@ -721,7 +721,7 @@ function maybeQueueAiTurn() {
   if (!isAiTurn() || state.gameOver || !elements.menuOverlay.hidden) return;
   state.status = "Wacko AI thinking";
   render();
-  aiTimer = window.setTimeout(runAiTurn, 650);
+  aiTimer = window.setTimeout(runAiTurn, CONFIG.aiThinkDelayMs);
 }
 
 function runAiTurn() {

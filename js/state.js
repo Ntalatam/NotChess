@@ -6,10 +6,17 @@ export const CONFIG = {
   handSizeMax: 4,
   deckSize: 40,
   chaosMax: 100,
+  chaosCriticalThreshold: 80,
   mutationChance: 0.35,
   maxMutationsPerPiece: 4,
   moveAnimMs: 200,
   bannerDisplayMs: 2000,
+  majorChaosBannerMs: 1500,
+  aiThinkDelayMs: 650,
+  captureEffectMs: 420,
+  announcementMs: 1800,
+  lowTimeWarningMs: 30000,
+  undoStackMax: 16,
 };
 
 export function createInitialState(settings = {}, rng = Math.random) {
@@ -206,8 +213,6 @@ export function flushActiveClock(state, now = Date.now()) {
   clocks.startedAt = now;
 }
 
-const UNDO_STACK_MAX = 16;
-
 export function snapshotForUndo(state) {
   return {
     board: clone(state.board),
@@ -243,7 +248,7 @@ export function snapshotForUndo(state) {
 
 export function pushUndoSnapshot(state) {
   state.undoStack.push(snapshotForUndo(state));
-  if (state.undoStack.length > UNDO_STACK_MAX) {
+  if (state.undoStack.length > CONFIG.undoStackMax) {
     state.undoStack.shift();
   }
 }
