@@ -85,7 +85,6 @@
 
 html {
   background: var(--bg);
-  min-width: 900px;
 }
 
 body {
@@ -122,6 +121,7 @@ button {
   min-height: 100vh;
   position: relative;
   overflow: hidden;
+  touch-action: manipulation;
 }
 
 .game-layout {
@@ -1310,28 +1310,47 @@ button {
 
 @media (max-width: 700px) {
   .game-layout {
-    padding: var(--sp-2);
+    padding: var(--sp-1);
+    gap: var(--sp-1);
+    grid-template-rows: auto auto 1fr auto;
+  }
+
+  .center-row {
+    grid-template-columns: 1fr;
     gap: var(--sp-2);
   }
 
   #boardCanvas {
-    width: calc(100vw - 24px);
+    width: calc(100vw - 16px);
     min-width: 280px;
     max-width: 100%;
+    touch-action: manipulation;
   }
 
+  .board-stage {
+    position: relative;
+  }
+
+  /* ── Horizontal scrolling card tray ── */
   .hand-row {
-    gap: var(--sp-1);
+    display: flex;
+    gap: var(--sp-2);
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     scroll-snap-type: x mandatory;
+    scroll-padding: var(--sp-2);
+    padding: var(--sp-1) var(--sp-2);
+    min-height: 80px;
   }
 
   .chaos-card {
-    min-width: 130px;
+    min-width: 140px;
+    max-width: 160px;
     flex: 0 0 auto;
     scroll-snap-align: start;
     padding: var(--sp-2) var(--sp-3);
+    /* Larger touch target */
+    min-height: 80px;
   }
 
   .chaos-card h3 {
@@ -1343,27 +1362,55 @@ button {
     font-size: 10px;
   }
 
+  /* ── Sidebar collapses to compact strip ── */
   .sidebar {
     max-height: none;
     gap: var(--sp-2);
+    padding: var(--sp-2);
+    flex-direction: row;
+    flex-wrap: wrap;
   }
 
   .sidebar-block {
     min-width: 0;
+    flex: 1 1 45%;
+  }
+
+  .sidebar-block--turn {
     flex: 1 1 100%;
+  }
+
+  .sidebar-block--log {
+    flex: 1 1 100%;
+    max-height: 100px;
+    overflow-y: auto;
   }
 
   .turn-actions {
     flex-wrap: wrap;
+    gap: var(--sp-1);
   }
 
+  .turn-actions .btn {
+    padding: 6px 10px;
+    font-size: var(--fs-xs);
+    min-height: 32px;
+  }
+
+  /* ── Compact player HUD ── */
   .player-panel {
-    flex-wrap: wrap;
-    gap: var(--sp-1);
+    grid-template-columns: 1fr auto;
+    gap: var(--sp-2);
+    padding: var(--sp-2) var(--sp-3);
   }
 
   .hud-stat-row {
-    gap: var(--sp-1);
+    display: none;
+  }
+
+  .hud-clock {
+    font-size: var(--fs-md);
+    min-width: 56px;
   }
 
   .hud-chip {
@@ -1371,12 +1418,13 @@ button {
     padding: 2px 6px;
   }
 
+  /* ── Menu form ── */
   .start-panel {
-    padding: var(--sp-5) var(--sp-4);
+    padding: var(--sp-4) var(--sp-3);
   }
 
   .start-panel h1 {
-    font-size: 2rem;
+    font-size: 1.75rem;
   }
 
   .form-grid {
@@ -1384,15 +1432,20 @@ button {
   }
 
   .segmented {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: var(--sp-1);
   }
 
+  .segmented--theme {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
   .segmented span {
-    min-height: 36px;
+    min-height: 38px;
     font-size: 12px;
   }
 
+  /* ── Help / End overlays ── */
   .help-grid {
     grid-template-columns: 1fr;
     gap: var(--sp-3);
@@ -1414,7 +1467,65 @@ button {
   }
 
   .move-history {
-    max-height: 120px;
+    max-height: 80px;
+  }
+
+  /* ── Replay controls ── */
+  .replay-controls {
+    padding: var(--sp-1) var(--sp-2);
+    gap: var(--sp-1);
+    bottom: 6px;
+  }
+
+  /* ── Mutation tooltip fixed at bottom ── */
+  .mutation-tooltip {
+    position: fixed;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    top: auto !important;
+    max-width: 90vw;
+  }
+}
+
+/* ── Touch-specific ── */
+@media (pointer: coarse) {
+  /* Larger tap targets for buttons */
+  .btn {
+    min-height: 42px;
+    min-width: 42px;
+  }
+
+  .btn--sm {
+    min-height: 34px;
+    min-width: 34px;
+  }
+
+  .btn--ghost {
+    min-height: 38px;
+  }
+
+  /* Prevent iOS double-tap zoom on game board */
+  #boardCanvas {
+    touch-action: manipulation;
+  }
+
+  /* Larger promotion buttons */
+  .promotion-options button {
+    min-width: 52px;
+    min-height: 52px;
+    font-size: 32px;
+  }
+
+  /* Cards need bigger touch area */
+  .chaos-card {
+    min-height: 88px;
+  }
+
+  /* Prevent text selection during gameplay */
+  .game-layout {
+    -webkit-user-select: none;
+    user-select: none;
   }
 }
 

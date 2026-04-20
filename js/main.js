@@ -141,6 +141,9 @@ function bindEvents() {
   elements.boardCanvas.addEventListener("mousemove", handleBoardMouseMove);
   elements.boardCanvas.addEventListener("mouseleave", handleBoardMouseLeave);
   window.addEventListener("mouseup", handleBoardMouseUp);
+  elements.boardCanvas.addEventListener("touchstart", handleTouchStart, { passive: false });
+  elements.boardCanvas.addEventListener("touchmove", handleTouchMove, { passive: false });
+  elements.boardCanvas.addEventListener("touchend", handleTouchEnd, { passive: false });
   elements.promotionOverlay.addEventListener("click", handlePromotionClick);
   elements.whiteHand.addEventListener("click", handleCardClick);
   elements.blackHand.addEventListener("click", handleCardClick);
@@ -389,6 +392,122 @@ function handleBoardMouseLeave() {
   hoverSquare = null;
   hoverMovesCache = null;
   hideMutationTooltip();
+}
+
+// ── Touch handlers for mobile ──
+
+let touchStartPos = null;
+let touchDragPiece = null;
+
+function handleTouchStart(event) {
+  if (state.gameOver || !elements.menuOverlay.hidden || !elements.promotionOverlay.hidden) return;
+  if (isAiTurn()) return;
+
+  const touch = event.touches[0];
+  const rect = elements.boardCanvas.getBoundingClientRect();
+  const x = touch.clientX - rect.left;
+  const y = touch.clientY - rect.top;
+  const square = pointToSquare(boardMetrics, x, y);
+
+  if (!square) return;
+  event.preventDefault();
+
+  touchStartPos = { x, y, square, time: Date.now() };
+
+  // If we tap on our own piece, start drag
+  const piece = getPieceAt(state.board, square.row, square.col);
+  if (piece && isPlayersPiece(state, square.row, square.col) && !state.targeting) {
+    selectPiece(square.row, square.col);
+    touchDragPiece = {
+      pieceId: piece.id,
+      from: { row: square.row, col: square.col },
+    };
+    state.dragging = {
+      pieceId: piece.id,
+      from: { row: square.row, col: square.col },
+      cursorX: x,
+      cursorY: y,
+      moved: false,
+    };
+  }
+}
+
+function handleTouchMove(event) {
+  if (!touchStartPos) return;
+  event.preventDefault();
+
+  const touch = event.touches[0];
+  const rect = elements.boardCanvas.getBoundingClientRect();
+  const x = touch.clientX - rect.left;
+  const y = touch.clientY - rect.top;
+
+  if (state.dragging) {
+    state.dragging.cursorX = x;
+    state.dragging.cursorY = y;
+    const dx = x - touchStartPos.x;
+    const dy = y - touchStartPos.y;
+    if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
+      state.dragging.moved = true;
+    }
+  }
+}
+
+function handleTouchEnd(event) {
+  if (!touchStartPos) return;
+  event.preventDefault();
+
+  const touch = event.changedTouches[0];
+  const rect = elements.boardCanvas.getBoundingClientRect();
+  const x = touch.clientX - rect.left;
+  const y = touch.clientY - rect.top;
+  const square = pointToSquare(boardMetrics, x, y);
+
+  const drag = state.dragging;
+  state.dragging = null;
+  delete elements.boardCanvas.dataset.dragging;
+
+  if (drag?.moved && square) {
+    // Drag-and-drop completion
+    if (square.row !== drag.from.row || square.col !== drag.from.col) {
+      const promotionChoices = getPromotionChoices(state.validMoves, square.row, square.col);
+      if (promotionChoices.length > 0) {
+        state.pendingPromotion = { from: drag.from, to: square, choices: promotionChoices };
+        renderPromotionChoices(promotionChoices);
+      } else if (state.validMoves.some((m) => m.row === square.row && m.col === square.col)) {
+        commitMove(drag.from, square);
+      } else {
+        clearSelection();
+      }
+    }
+  } else if (square) {
+    // Tap — use click-style logic
+    if (state.targeting) {
+      handleTargetingClick(square);
+    } else if (state.selected) {
+      const clickedPiece = getPieceAt(state.board, square.row, square.col);
+      if (clickedPiece && isPlayersPiece(state, square.row, square.col)) {
+        selectPiece(square.row, square.col);
+      } else {
+        const promotionChoices = getPromotionChoices(state.validMoves, square.row, square.col);
+        if (promotionChoices.length > 0) {
+          state.pendingPromotion = { from: { row: state.selected.row, col: state.selected.col }, to: square, choices: promotionChoices };
+          renderPromotionChoices(promotionChoices);
+        } else if (state.validMoves.some((m) => m.row === square.row && m.col === square.col)) {
+          commitMove({ row: state.selected.row, col: state.selected.col }, square);
+        } else {
+          clearSelection();
+        }
+      }
+    } else {
+      const piece = getPieceAt(state.board, square.row, square.col);
+      if (piece && isPlayersPiece(state, square.row, square.col)) {
+        selectPiece(square.row, square.col);
+      }
+    }
+  }
+
+  touchStartPos = null;
+  touchDragPiece = null;
 }
 
 function getHoverMoves() {
