@@ -523,6 +523,8 @@ function commitMove(from, to, promotion = undefined) {
     return;
   }
 
+  state.turnActions.moveMade = true;
+
   state.animation = {
     pieceId: result.movingPiece.id,
     piece: { ...result.movingPiece, mutations: [...result.movingPiece.mutations] },
@@ -786,6 +788,19 @@ function runAiTurn() {
   }
 
   commitMove(move.from, move.to, move.promotion);
+
+  // Post-move card play
+  if (!state.gameOver) {
+    const postCard = chooseAiCardPlay(state, "black");
+    if (postCard) {
+      const postResult = playCard(state, "black", postCard.handIndex, postCard.targets);
+      if (postResult) {
+        showAnnouncement(elements, `AI played ${postResult.definition.name}`, "warning");
+        playTone("card");
+        render();
+      }
+    }
+  }
 }
 
 function isAiTurn() {

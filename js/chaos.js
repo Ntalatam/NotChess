@@ -261,7 +261,8 @@ export function setupChaosDeck(state) {
 }
 
 export function startTurn(state) {
-  state.turnActions.cardPlayed = false;
+  state.turnActions.cardsPlayed = 0;
+  state.turnActions.moveMade = false;
   drawCard(state, state.turn);
   tickFrozenPieces(state, state.turn);
   resolveExpiringEvents(state);
@@ -287,7 +288,10 @@ export function drawCard(state, color) {
 }
 
 export function canPlayCard(state, color, handIndex) {
-  if (state.turn !== color || state.turnActions.cardPlayed || state.gameOver) return false;
+  if (state.turn !== color || state.gameOver) return false;
+  // Allow 1 card before the move and 1 card after the move (max 2 per turn)
+  if (state.turnActions.cardsPlayed >= 2) return false;
+  if (!state.turnActions.moveMade && state.turnActions.cardsPlayed >= 1) return false;
   const card = state.hands[color][handIndex];
   if (!card) return false;
   const definition = CARD_DEFINITIONS[card.id];
@@ -311,7 +315,7 @@ export function playCard(state, color, handIndex, targets = []) {
 
   state.hands[color].splice(handIndex, 1);
   state.deck.discard.push(card);
-  state.turnActions.cardPlayed = true;
+  state.turnActions.cardsPlayed += 1;
   state.cardsPlayed += 1;
   definition.resolve(state, color, targets);
   syncChessToBoard(state, state.turn);

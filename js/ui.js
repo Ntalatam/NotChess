@@ -90,7 +90,7 @@ function renderHands(container, hand, hidden, color, state) {
       }
 
       return `
-        <button class="chaos-card chaos-card--button" type="button" data-card-color="${color}" data-hand-index="${index}" ${state.turnActions.cardPlayed ? "disabled" : ""}>
+        <button class="chaos-card chaos-card--button" type="button" data-card-color="${color}" data-hand-index="${index}" ${state.turnActions.cardsPlayed >= 2 || (!state.turnActions.moveMade && state.turnActions.cardsPlayed >= 1) ? "disabled" : ""}>
           <span class="chaos-card__tag">${escapeHtml(definition.category)}</span>
           <h3>${escapeHtml(definition.name)}</h3>
           <p>${escapeHtml(definition.text)}</p>

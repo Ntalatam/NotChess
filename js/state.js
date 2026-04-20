@@ -65,7 +65,8 @@ export function createInitialState(settings = {}, rng = Math.random) {
       black: [],
     },
     turnActions: {
-      cardPlayed: false,
+      cardsPlayed: 0,
+      moveMade: false,
     },
     targeting: null,
     extraMoves: {
