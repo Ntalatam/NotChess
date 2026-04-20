@@ -45,6 +45,18 @@ import {
 } from "./state.js";
 import { drawTiles } from "./tiles.js";
 import { renderEndOverlay, renderShell, showAnnouncement } from "./ui.js";
+import {
+  startRecording,
+  recordMove,
+  recordCardPlay,
+  recordMajorChaos,
+  finishRecording,
+  loadAllReplays,
+  deleteReplay,
+  encodeReplay,
+  decodeReplay,
+  createPlayback,
+} from "./replay.js";
 
 const STORAGE_KEY = "wacko-chess-settings-v1";
 const STATS_KEY = "wacko-chess-stats-v1";
@@ -84,6 +96,7 @@ const elements = {
   moveHistory: document.querySelector("#moveHistory"),
   helpOverlay: document.querySelector("#helpOverlay"),
   endOverlay: document.querySelector("#endOverlay"),
+  replaysButton: document.querySelector("#replaysButton"),
 };
 
 let state = createInitialState({ stats: loadStats() });
@@ -92,6 +105,8 @@ let frame = 0;
 let aiTimer = null;
 let hoverSquare = null;
 let hoverMovesCache = null;
+let activePlayback = null;
+let playbackTimer = null;
 
 function init() {
   applyStoredSettings();
@@ -127,6 +142,7 @@ function bindEvents() {
   elements.drawButton?.addEventListener("click", handleDraw);
   document.addEventListener("click", handleHelpClick);
   window.addEventListener("keydown", handleKeydown);
+  elements.replaysButton?.addEventListener("click", openReplayList);
 }
 
 function handleResign() {
@@ -169,12 +185,14 @@ function handleUndo() {
 
 function handleStart(event) {
   event.preventDefault();
+  stopPlayback();
   const settings = readSettingsForm();
   persistSettings(settings);
   state = createInitialState({ ...settings, stats: loadStats() });
   setupChaosDeck(state);
   state.status = `${settings.intensity} chaos`;
   state.log = [`${settings.whiteName} and ${settings.blackName} begin.`];
+  startRecording(settings);
   beginTurn();
 
   clearSave();
@@ -395,6 +413,7 @@ function handleCardClick(event) {
   if (targetCount === 0) {
     const result = playCard(state, color, handIndex, []);
     if (result) {
+      recordCardPlay(color, handIndex, [], result.card.id);
       showAnnouncement(elements, `${result.definition.name} played`, "warning");
       playTone("card");
     }
@@ -429,8 +448,10 @@ function handleTargetingClick(square) {
     return;
   }
 
-  const result = playCard(state, state.targeting.color, state.targeting.handIndex, state.targeting.targets);
+  const { color: tColor, handIndex: tHandIndex, targets: tTargets } = state.targeting;
+  const result = playCard(state, tColor, tHandIndex, tTargets);
   if (result) {
+    recordCardPlay(tColor, tHandIndex, tTargets, result.card.id);
     showAnnouncement(elements, `${result.definition.name} played`, "warning");
     playTone("card");
   }
@@ -523,6 +544,7 @@ function commitMove(from, to, promotion = undefined) {
     return;
   }
 
+  recordMove(from, to, promotion, previousTurn);
   state.turnActions.moveMade = true;
 
   state.animation = {
@@ -678,6 +700,7 @@ function handleGameOver() {
   pauseClock(state);
   window.clearTimeout(aiTimer);
   clearSave();
+  finishRecording(state.winner, state.gameOverReason, state.turnCount);
   updateStatsForGameOver();
   showAnnouncement(elements, state.gameOverReason, state.winner ? "critical" : "warning");
   playTone("end");
@@ -736,6 +759,7 @@ function updateStatsForGameOver() {
 
 function handleMajorChaos(event) {
   if (!event) return;
+  recordMajorChaos(event.name);
   elements.majorChaosName.textContent = event.name;
   elements.majorChaosOverlay.hidden = false;
   playTone("chaos");
@@ -769,6 +793,7 @@ function runAiTurn() {
   if (cardPlay) {
     const result = playCard(state, "black", cardPlay.handIndex, cardPlay.targets);
     if (result) {
+      recordCardPlay("black", cardPlay.handIndex, cardPlay.targets, result.card.id);
       showAnnouncement(elements, `AI played ${result.definition.name}`, "warning");
       playTone("card");
       render();
@@ -795,6 +820,7 @@ function runAiTurn() {
     if (postCard) {
       const postResult = playCard(state, "black", postCard.handIndex, postCard.targets);
       if (postResult) {
+        recordCardPlay("black", postCard.handIndex, postCard.targets, postResult.card.id);
         showAnnouncement(elements, `AI played ${postResult.definition.name}`, "warning");
         playTone("card");
         render();
@@ -893,6 +919,299 @@ function findKingSquare(gameState) {
 function cleanName(value, fallback) {
   const next = String(value || "").trim();
   return next || fallback;
+}
+
+// ═══════════════════════════════════════════════════════════
+// REPLAY VIEWER
+// ═══════════════════════════════════════════════════════════
+
+function stopPlayback() {
+  if (playbackTimer) {
+    clearInterval(playbackTimer);
+    playbackTimer = null;
+  }
+  activePlayback = null;
+}
+
+function openReplayList() {
+  const replays = loadAllReplays();
+  const overlay = elements.endOverlay;
+
+  if (!replays.length) {
+    overlay.hidden = false;
+    overlay.innerHTML = `
+      <section class="end-panel">
+        <h2>Replays</h2>
+        <p>No saved replays yet. Finish a match to record one.</p>
+        <div class="end-actions">
+          <button class="btn btn--ghost" type="button" data-end-action="menu">Back</button>
+        </div>
+      </section>
+    `;
+    return;
+  }
+
+  const rows = replays.map((r, i) => {
+    const date = new Date(r.date).toLocaleDateString();
+    const winner = r.result?.winner ? `${r.result.winner[0].toUpperCase()}${r.result.winner.slice(1)} wins` : "Draw";
+    const turns = r.result?.turnCount || "?";
+    const intensity = r.settings?.intensity || "standard";
+    return `
+      <li class="replay-item">
+        <div class="replay-item__info">
+          <strong>${winner}</strong>
+          <span>${date} &middot; ${turns} turns &middot; ${intensity}</span>
+        </div>
+        <div class="replay-item__actions">
+          <button class="btn btn--ghost btn--sm" type="button" data-replay-watch="${i}">Watch</button>
+          <button class="btn btn--ghost btn--sm" type="button" data-replay-share="${i}">Share</button>
+          <button class="btn btn--ghost btn--sm btn--danger" type="button" data-replay-delete="${i}">Del</button>
+        </div>
+      </li>
+    `;
+  }).join("");
+
+  overlay.hidden = false;
+  overlay.innerHTML = `
+    <section class="end-panel replay-panel">
+      <h2>Replays</h2>
+      <ul class="replay-list">${rows}</ul>
+      <div class="end-actions">
+        <label class="field replay-import-field">
+          <span>Import replay code:</span>
+          <input id="replayImportInput" autocomplete="off" placeholder="Paste encoded replay..." />
+        </label>
+        <button class="btn btn--ghost" type="button" id="replayImportBtn">Import</button>
+        <button class="btn btn--ghost" type="button" data-end-action="menu">Back</button>
+      </div>
+    </section>
+  `;
+
+  overlay.addEventListener("click", handleReplayListClick);
+  document.getElementById("replayImportBtn")?.addEventListener("click", handleReplayImport);
+}
+
+function handleReplayListClick(event) {
+  const watchBtn = event.target.closest("[data-replay-watch]");
+  const shareBtn = event.target.closest("[data-replay-share]");
+  const deleteBtn = event.target.closest("[data-replay-delete]");
+  const backBtn = event.target.closest("[data-end-action='menu']");
+
+  if (watchBtn) {
+    const idx = Number(watchBtn.dataset.replayWatch);
+    const replays = loadAllReplays();
+    if (replays[idx]) startReplayViewer(replays[idx]);
+    return;
+  }
+
+  if (shareBtn) {
+    const idx = Number(shareBtn.dataset.replayShare);
+    const replays = loadAllReplays();
+    if (replays[idx]) {
+      const code = encodeReplay(replays[idx]);
+      navigator.clipboard.writeText(code).then(() => {
+        showAnnouncement(elements, "Replay code copied to clipboard!", "warning");
+      }).catch(() => {
+        prompt("Copy this replay code:", code);
+      });
+    }
+    return;
+  }
+
+  if (deleteBtn) {
+    const idx = Number(deleteBtn.dataset.replayDelete);
+    deleteReplay(idx);
+    openReplayList();
+    return;
+  }
+
+  if (backBtn) {
+    elements.endOverlay.hidden = true;
+    elements.endOverlay.innerHTML = "";
+    elements.endOverlay.removeEventListener("click", handleReplayListClick);
+    return;
+  }
+}
+
+function handleReplayImport() {
+  const input = document.getElementById("replayImportInput");
+  const code = (input?.value || "").trim();
+  if (!code) {
+    showAnnouncement(elements, "Paste a replay code first", "critical");
+    return;
+  }
+  const replay = decodeReplay(code);
+  if (!replay || !replay.events) {
+    showAnnouncement(elements, "Invalid replay code", "critical");
+    return;
+  }
+  // Save it to the list
+  const replays = loadAllReplays();
+  replays.unshift(replay);
+  if (replays.length > 10) replays.length = 10;
+  localStorage.setItem("wacko-chess-replays-v1", JSON.stringify(replays));
+  showAnnouncement(elements, "Replay imported!", "warning");
+  openReplayList();
+}
+
+function startReplayViewer(replay) {
+  stopPlayback();
+
+  // Set up game state from replay settings
+  const settings = replay.settings || {};
+  state = createInitialState({ ...settings, stats: loadStats() });
+  setupChaosDeck(state);
+  state.log = ["Replay started."];
+
+  activePlayback = createPlayback(replay);
+
+  elements.endOverlay.hidden = true;
+  elements.endOverlay.innerHTML = "";
+  elements.menuOverlay.hidden = true;
+  elements.appShell.dataset.screen = "game";
+  render();
+  renderReplayControls();
+  showAnnouncement(elements, "Replay mode — use controls to step through", "warning");
+}
+
+function renderReplayControls() {
+  let controlBar = document.getElementById("replayControls");
+  if (!controlBar) {
+    controlBar = document.createElement("div");
+    controlBar.id = "replayControls";
+    controlBar.className = "replay-controls";
+    document.querySelector(".board-stage")?.appendChild(controlBar);
+  }
+
+  if (!activePlayback) {
+    controlBar.remove();
+    return;
+  }
+
+  const pb = activePlayback;
+  const progress = Math.round(pb.progress * 100);
+  controlBar.innerHTML = `
+    <button class="btn btn--ghost btn--sm" type="button" id="replayFirst" ${pb.isAtStart ? "disabled" : ""}>|&lt;</button>
+    <button class="btn btn--ghost btn--sm" type="button" id="replayPrev" ${pb.isAtStart ? "disabled" : ""}>&lt;</button>
+    <button class="btn btn--ghost btn--sm" type="button" id="replayPlay">${pb.playing ? "Pause" : "Play"}</button>
+    <button class="btn btn--ghost btn--sm" type="button" id="replayNext" ${pb.isAtEnd ? "disabled" : ""}>&gt;</button>
+    <button class="btn btn--ghost btn--sm" type="button" id="replayLast" ${pb.isAtEnd ? "disabled" : ""}>&gt;|</button>
+    <span class="replay-progress">${pb.currentIndex + 1} / ${pb.totalEvents}</span>
+    <button class="btn btn--ghost btn--sm btn--danger" type="button" id="replayExit">Exit</button>
+  `;
+
+  controlBar.onclick = handleReplayControlClick;
+}
+
+function handleReplayControlClick(event) {
+  const btn = event.target.closest("button");
+  if (!btn || !activePlayback) return;
+
+  if (btn.id === "replayFirst") {
+    replayGoTo(-1);
+  } else if (btn.id === "replayPrev") {
+    replayStep(-1);
+  } else if (btn.id === "replayPlay") {
+    toggleReplayAutoPlay();
+  } else if (btn.id === "replayNext") {
+    replayStep(1);
+  } else if (btn.id === "replayLast") {
+    replayGoTo(activePlayback.totalEvents - 1);
+  } else if (btn.id === "replayExit") {
+    exitReplay();
+  }
+}
+
+function replayStep(direction) {
+  if (!activePlayback) return;
+  const pb = activePlayback;
+
+  if (direction > 0 && !pb.isAtEnd) {
+    pb.currentIndex += 1;
+    applyReplayEvent(pb.replay.events[pb.currentIndex]);
+  } else if (direction < 0 && !pb.isAtStart) {
+    // For backward, re-apply from start up to currentIndex - 1
+    replayGoTo(pb.currentIndex - 1);
+    return;
+  }
+
+  render();
+  renderReplayControls();
+}
+
+function replayGoTo(targetIndex) {
+  if (!activePlayback) return;
+  const pb = activePlayback;
+  const settings = pb.replay.settings || {};
+
+  // Reset state and re-apply all events up to targetIndex
+  state = createInitialState({ ...settings, stats: loadStats() });
+  setupChaosDeck(state);
+  state.log = ["Replay started."];
+
+  for (let i = 0; i <= targetIndex && i < pb.totalEvents; i++) {
+    applyReplayEvent(pb.replay.events[i]);
+  }
+
+  pb.currentIndex = targetIndex;
+  render();
+  renderReplayControls();
+}
+
+function applyReplayEvent(event) {
+  if (!event) return;
+
+  if (event.type === "move") {
+    const { from, to, promotion } = event.payload;
+    // Use startTurn to draw cards and handle chaos
+    if (!state.turnActions.moveMade) {
+      startTurn(state);
+    }
+    requestMove(state, from, to, promotion);
+    state.turnActions.moveMade = true;
+    if (!state.gameOver) {
+      startClock(state, state.turn);
+    }
+  } else if (event.type === "card") {
+    const { color, handIndex, targets } = event.payload;
+    playCard(state, color, handIndex, targets);
+  } else if (event.type === "chaos") {
+    // Major chaos is handled by startTurn — just log it
+    state.log.push(`MAJOR CHAOS: ${event.payload.name}`);
+  }
+}
+
+function toggleReplayAutoPlay() {
+  if (!activePlayback) return;
+
+  if (activePlayback.playing) {
+    activePlayback.playing = false;
+    clearInterval(playbackTimer);
+    playbackTimer = null;
+  } else {
+    activePlayback.playing = true;
+    playbackTimer = setInterval(() => {
+      if (!activePlayback || activePlayback.isAtEnd) {
+        if (activePlayback) activePlayback.playing = false;
+        clearInterval(playbackTimer);
+        playbackTimer = null;
+        renderReplayControls();
+        return;
+      }
+      replayStep(1);
+    }, activePlayback.speed);
+  }
+  renderReplayControls();
+}
+
+function exitReplay() {
+  stopPlayback();
+  const controlBar = document.getElementById("replayControls");
+  if (controlBar) controlBar.remove();
+  state = createInitialState({ stats: loadStats() });
+  elements.menuOverlay.hidden = false;
+  elements.appShell.dataset.screen = "menu";
+  render();
 }
 
 init();
