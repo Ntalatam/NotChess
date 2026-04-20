@@ -345,3 +345,80 @@ export function checkTimeout(state, now = Date.now()) {
   state.clocks.startedAt = null;
   return true;
 }
+
+const SAVE_KEY = "wacko-chess-save-v1";
+
+export function saveGame(state) {
+  if (state.gameOver) {
+    clearSave();
+    return;
+  }
+  const snap = snapshotForUndo(state);
+  snap.settings = { ...state.settings };
+  snap.gameOver = false;
+  snap.status = state.status || "";
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify(snap));
+  } catch {
+    // storage full — silently skip
+  }
+}
+
+export function loadSavedGame() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function clearSave() {
+  localStorage.removeItem(SAVE_KEY);
+}
+
+export function restoreSavedGame(state, save) {
+  state.board = save.board;
+  state.chess.load(save.fen);
+  state.turn = save.turn;
+  state.turnCount = save.turnCount;
+  state.hands = save.hands;
+  state.deck = save.deck;
+  state.chaosEvents = save.chaosEvents;
+  state.specialTiles = save.specialTiles;
+  state.chaosMeter = save.chaosMeter;
+  state.majorChaosCount = save.majorChaosCount;
+  state.cardsPlayed = save.cardsPlayed;
+  state.capturedPieces = save.capturedPieces;
+  state.extraMoves = save.extraMoves;
+  state.enPassantTarget = save.enPassantTarget;
+  state.halfMoveClock = save.halfMoveClock;
+  state.check = save.check;
+  state.moveHistory = save.moveHistory;
+  state.lastMove = save.lastMove;
+  state.turnActions = save.turnActions;
+  state.log = save.log;
+  state.mutationStats = save.mutationStats;
+  state.wildcardRolls = save.wildcardRolls;
+  state.swapZoneEntries = save.swapZoneEntries;
+  state.clocks = save.clocks;
+  state.clocks.paused = true;
+  state.clocks.startedAt = null;
+  state.players = save.players;
+  state.settings = save.settings || state.settings;
+  state.status = save.status || "";
+  state.selected = null;
+  state.validMoves = [];
+  state.targetSquares = [];
+  state.pendingPromotion = null;
+  state.targeting = null;
+  state.animation = null;
+  state.dragging = null;
+  state.gameOver = false;
+  state.winner = null;
+  state.gameOverReason = "";
+  state.wackoGameOver = null;
+  state.checkmate = false;
+  state.stalemate = false;
+  state.draw = false;
+}

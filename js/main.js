@@ -26,16 +26,20 @@ import {
   CONFIG,
   agreeDraw,
   checkTimeout,
+  clearSave,
   createInitialState,
   flushActiveClock,
   formatClock,
   getRemainingMs,
   isUnlimited,
+  loadSavedGame,
   pauseClock,
   pushUndoSnapshot,
   resignGame,
+  restoreSavedGame,
   restoreUndoSnapshot,
   resumeClock,
+  saveGame,
   startClock,
   syncHudStats,
 } from "./state.js";
@@ -55,6 +59,7 @@ const elements = {
   blackNameInput: document.querySelector("#blackNameInput"),
   aiOpponentInput: document.querySelector("#aiOpponentInput"),
   difficultyField: document.querySelector("#difficultyField"),
+  resumeButton: document.querySelector("#resumeButton"),
   whiteHud: document.querySelector("#whiteHud"),
   blackHud: document.querySelector("#blackHud"),
   whiteHand: document.querySelector("#whiteHand"),
@@ -93,6 +98,12 @@ function init() {
   bindEvents();
   initAudioToggle(elements.soundToggle);
   resizeBoard();
+
+  const save = loadSavedGame();
+  if (save && elements.resumeButton) {
+    elements.resumeButton.hidden = false;
+  }
+
   render();
   requestAnimationFrame(tick);
 }
@@ -100,6 +111,7 @@ function init() {
 function bindEvents() {
   window.addEventListener("resize", resizeBoard);
   elements.startForm.addEventListener("submit", handleStart);
+  elements.resumeButton?.addEventListener("click", handleResume);
   elements.aiOpponentInput.addEventListener("change", updateAiNameState);
   elements.boardCanvas.addEventListener("click", handleBoardClick);
   elements.boardCanvas.addEventListener("mousedown", handleBoardMouseDown);
@@ -165,11 +177,31 @@ function handleStart(event) {
   state.log = [`${settings.whiteName} and ${settings.blackName} begin.`];
   beginTurn();
 
+  clearSave();
   elements.menuOverlay.hidden = true;
   elements.endOverlay.hidden = true;
   elements.appShell.dataset.screen = "game";
+  if (elements.resumeButton) elements.resumeButton.hidden = true;
   render();
   showAnnouncement(elements, "Match begins", "warning");
+}
+
+function handleResume() {
+  const save = loadSavedGame();
+  if (!save) return;
+  const settings = save.settings || readSettingsForm();
+  state = createInitialState({ ...settings, stats: loadStats() });
+  restoreSavedGame(state, save);
+  state.undoStack = [];
+
+  elements.menuOverlay.hidden = true;
+  elements.endOverlay.hidden = true;
+  elements.appShell.dataset.screen = "game";
+  if (elements.resumeButton) elements.resumeButton.hidden = true;
+  if (!isUnlimited(state)) startClock(state, state.turn);
+  render();
+  showAnnouncement(elements, "Match resumed", "warning");
+  maybeQueueAiTurn();
 }
 
 function handleBoardClick(event) {
@@ -536,6 +568,8 @@ function commitMove(from, to, promotion = undefined) {
   window.setTimeout(() => {
     state.animation = null;
   }, CONFIG.moveAnimMs + 40);
+
+  saveGame(state);
 }
 
 function renderPromotionChoices(choices) {
@@ -548,6 +582,7 @@ function renderPromotionChoices(choices) {
 
 function restartMatch(showMenu, { swap = false } = {}) {
   window.clearTimeout(aiTimer);
+  clearSave();
   const settings = readSettingsForm();
   if (swap && !settings.aiOpponent) {
     const prevWhite = settings.whiteName;
@@ -640,6 +675,7 @@ function updateClockDisplay() {
 function handleGameOver() {
   pauseClock(state);
   window.clearTimeout(aiTimer);
+  clearSave();
   updateStatsForGameOver();
   showAnnouncement(elements, state.gameOverReason, state.winner ? "critical" : "warning");
   playTone("end");
