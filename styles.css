@@ -1076,6 +1076,14 @@ button {
   outline-offset: 2px;
 }
 
+.segmented--theme {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.segmented--pieces {
+  grid-template-columns: repeat(3, 1fr);
+}
+
 /* ── Stats strip ── */
 .stats-strip {
   display: grid;

@@ -1,3 +1,5 @@
+import { getTheme } from "./themes.js";
+
 const FILES = ["a", "b", "c", "d", "e", "f", "g", "h"];
 
 export function createBoardMetrics(canvas) {
@@ -115,19 +117,22 @@ function drawLastMove(ctx, metrics, lastMove) {
 }
 
 function drawFrame(ctx, metrics, frame) {
+  const theme = getTheme();
   const pulse = Math.sin(frame / 34) * 0.5 + 0.5;
   const outer = metrics.originX - 16;
   const size = metrics.boardSize + 32;
 
   ctx.save();
-  ctx.fillStyle = "#0a0b11";
+  ctx.fillStyle = theme.frame.background;
   ctx.fillRect(0, 0, metrics.cssSize, metrics.cssSize);
-  ctx.strokeStyle = `rgba(240, 192, 64, ${0.22 + pulse * 0.12})`;
+
+  const baseAlpha = parseFloat(theme.frame.borderColor.match(/[\d.]+(?=\))/)?.[0] || 0.22);
+  ctx.strokeStyle = theme.frame.borderColor.replace(/[\d.]+\)$/, `${baseAlpha + pulse * theme.frame.borderPulse})`);
   ctx.lineWidth = 2;
   roundRect(ctx, outer, outer, size, size, 8);
   ctx.stroke();
 
-  ctx.strokeStyle = "rgba(0, 229, 255, 0.18)";
+  ctx.strokeStyle = theme.frame.innerBorder;
   ctx.lineWidth = 1;
   roundRect(ctx, metrics.originX - 8, metrics.originY - 8, metrics.boardSize + 16, metrics.boardSize + 16, 6);
   ctx.stroke();
@@ -135,22 +140,23 @@ function drawFrame(ctx, metrics, frame) {
 }
 
 function drawSquare(ctx, metrics, row, col, frame) {
+  const theme = getTheme();
   const { x, y, size } = squareRect(metrics, row, col);
   const isLight = (row + col) % 2 === 0;
   const crackOffset = (row * 17 + col * 29 + frame * 0.22) % size;
 
   ctx.save();
-  ctx.fillStyle = isLight ? "#27283a" : "#11131d";
+  ctx.fillStyle = isLight ? theme.board.light : theme.board.dark;
   ctx.fillRect(x, y, size, size);
 
   const seamGradient = ctx.createLinearGradient(x, y, x + size, y + size);
-  seamGradient.addColorStop(0, "rgba(0, 229, 255, 0)");
-  seamGradient.addColorStop(0.48, isLight ? "rgba(240, 192, 64, 0.06)" : "rgba(0, 229, 255, 0.08)");
-  seamGradient.addColorStop(1, "rgba(255, 59, 92, 0)");
+  seamGradient.addColorStop(0, "rgba(0, 0, 0, 0)");
+  seamGradient.addColorStop(0.48, isLight ? theme.board.seamLight : theme.board.seamDark);
+  seamGradient.addColorStop(1, "rgba(0, 0, 0, 0)");
   ctx.fillStyle = seamGradient;
   ctx.fillRect(x, y, size, size);
 
-  ctx.strokeStyle = isLight ? "rgba(255, 255, 255, 0.025)" : "rgba(255, 255, 255, 0.018)";
+  ctx.strokeStyle = isLight ? theme.board.crackLight : theme.board.crackDark;
   ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.moveTo(x + 8, y + crackOffset);
@@ -161,8 +167,9 @@ function drawSquare(ctx, metrics, row, col, frame) {
 }
 
 function drawCoordinates(ctx, metrics) {
+  const theme = getTheme();
   ctx.save();
-  ctx.fillStyle = "rgba(201, 194, 223, 0.66)";
+  ctx.fillStyle = theme.coords;
   ctx.font = '700 12px Inter, "Helvetica Neue", sans-serif';
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";

@@ -184,6 +184,21 @@
             <label><input type="radio" name="timer" value="5" /><span>5 min</span></label>
           </fieldset>
 
+          <fieldset class="segmented segmented--theme">
+            <legend>Board Theme</legend>
+            <label><input type="radio" name="theme" value="dark" checked /><span>Dark Fantasy</span></label>
+            <label><input type="radio" name="theme" value="classic" /><span>Classic Wood</span></label>
+            <label><input type="radio" name="theme" value="neon" /><span>Neon</span></label>
+            <label><input type="radio" name="theme" value="ice" /><span>Frozen</span></label>
+          </fieldset>
+
+          <fieldset class="segmented segmented--pieces">
+            <legend>Piece Style</legend>
+            <label><input type="radio" name="pieceStyle" value="standard" checked /><span>Standard</span></label>
+            <label><input type="radio" name="pieceStyle" value="bold" /><span>Bold</span></label>
+            <label><input type="radio" name="pieceStyle" value="elegant" /><span>Elegant</span></label>
+          </fieldset>
+
           <div class="stats-strip" id="statsStrip"></div>
           <button class="btn btn--outline-cyan" type="button" id="resumeButton" hidden>Continue Match</button>
           <button class="btn btn--primary" type="submit">New Match</button>

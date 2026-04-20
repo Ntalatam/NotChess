@@ -46,6 +46,13 @@ import {
 import { drawTiles } from "./tiles.js";
 import { renderEndOverlay, renderShell, showAnnouncement } from "./ui.js";
 import {
+  loadThemePreference,
+  setTheme,
+  setPieceStyle,
+  getThemeId,
+  getPieceStyleId,
+} from "./themes.js";
+import {
   startRecording,
   recordMove,
   recordCardPlay,
@@ -109,6 +116,7 @@ let activePlayback = null;
 let playbackTimer = null;
 
 function init() {
+  loadThemePreference();
   applyStoredSettings();
   bindEvents();
   initAudioToggle(elements.soundToggle);
@@ -143,6 +151,12 @@ function bindEvents() {
   document.addEventListener("click", handleHelpClick);
   window.addEventListener("keydown", handleKeydown);
   elements.replaysButton?.addEventListener("click", openReplayList);
+  for (const radio of elements.startForm.querySelectorAll('input[name="theme"]')) {
+    radio.addEventListener("change", (e) => setTheme(e.target.value));
+  }
+  for (const radio of elements.startForm.querySelectorAll('input[name="pieceStyle"]')) {
+    radio.addEventListener("change", (e) => setPieceStyle(e.target.value));
+  }
 }
 
 function handleResign() {
@@ -861,6 +875,9 @@ function readSettingsForm() {
 }
 
 function applyStoredSettings() {
+  setRadio("theme", getThemeId());
+  setRadio("pieceStyle", getPieceStyleId());
+
   const settings = loadJson(STORAGE_KEY, null);
   if (!settings) return;
 

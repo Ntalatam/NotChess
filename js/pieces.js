@@ -1,5 +1,6 @@
 import { squareRect } from "./board.js";
 import { MUTATION_DEFINITIONS } from "./mutations.js";
+import { getTheme, getPieceStyle } from "./themes.js";
 
 export const PIECE_TYPES = {
   p: { name: "Pawn", value: 1 },
@@ -125,20 +126,23 @@ export function drawPiece(ctx, metrics, piece, row, col, frame) {
 }
 
 function drawPieceAt(ctx, piece, x, y, size, frame, moving) {
+  const theme = getTheme();
+  const pieceStyle = getPieceStyle();
   const glyph = PIECE_GLYPHS[piece.color][piece.type];
   const pulse = Math.sin(frame / 16 + piece.id.length) * 0.5 + 0.5;
   const centerX = x + size / 2;
   const centerY = y + size / 2;
-  const fontSize = Math.max(34, size * 0.7);
+  const fontSize = Math.max(34, size * pieceStyle.sizeMultiplier);
+  const colors = theme.pieces[piece.color];
 
   ctx.save();
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.font = `${fontSize}px Georgia, "Times New Roman", serif`;
+  ctx.font = `${fontSize}px ${pieceStyle.font}`;
   ctx.shadowBlur = moving ? 24 : 12 + pulse * 8;
-  ctx.shadowColor = piece.color === "white" ? "rgba(240, 192, 64, 0.56)" : "rgba(0, 229, 255, 0.3)";
-  ctx.fillStyle = piece.color === "white" ? "#f4efff" : "#150d20";
-  ctx.strokeStyle = piece.color === "white" ? "rgba(10, 10, 15, 0.82)" : "rgba(240, 192, 64, 0.78)";
+  ctx.shadowColor = colors.glow;
+  ctx.fillStyle = colors.fill;
+  ctx.strokeStyle = colors.stroke;
   ctx.lineWidth = Math.max(1.25, size * 0.025);
   ctx.strokeText(glyph, centerX, centerY + size * 0.035);
   ctx.fillText(glyph, centerX, centerY + size * 0.035);
