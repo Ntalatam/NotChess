@@ -1,4 +1,4 @@
-import { initAudioToggle, playTone } from "./audio.js";
+import { initAudioToggle, initMusicToggle, initVolumeControls, playTone, startMusic, stopMusic } from "./audio.js";
 import { chooseAiCardPlay, chooseAiMove } from "./ai.js";
 import { createBoardMetrics, drawBoard, pointToSquare } from "./board.js";
 import {
@@ -97,6 +97,9 @@ const elements = {
   majorChaosOverlay: document.querySelector("#majorChaosOverlay"),
   majorChaosName: document.querySelector("#majorChaosName"),
   soundToggle: document.querySelector("#soundToggle"),
+  musicToggle: document.querySelector("#musicToggle"),
+  sfxVolume: document.querySelector("#sfxVolume"),
+  musicVolume: document.querySelector("#musicVolume"),
   undoButton: document.querySelector("#undoButton"),
   resignButton: document.querySelector("#resignButton"),
   drawButton: document.querySelector("#drawButton"),
@@ -120,6 +123,8 @@ function init() {
   applyStoredSettings();
   bindEvents();
   initAudioToggle(elements.soundToggle);
+  initMusicToggle(elements.musicToggle);
+  initVolumeControls(elements.sfxVolume, elements.musicVolume);
   resizeBoard();
 
   const save = loadSavedGame();
@@ -217,6 +222,7 @@ function handleStart(event) {
   elements.endOverlay.hidden = true;
   elements.appShell.dataset.screen = "game";
   if (elements.resumeButton) elements.resumeButton.hidden = true;
+  startMusic();
   render();
   showAnnouncement(elements, "Match begins", "warning");
 }
@@ -656,6 +662,7 @@ function selectPiece(row, col) {
 
   state.selected = { row, col, pieceId: piece.id };
   state.validMoves = getLegalMoves(state, piece.id);
+  playTone("select");
 }
 
 function clearSelection() {
@@ -713,6 +720,7 @@ function commitMove(from, to, promotion = undefined) {
     handleGameOver();
   } else if (state.check) {
     showAnnouncement(elements, "Check", "critical");
+    playTone("check");
   }
 
   render();
@@ -772,7 +780,10 @@ function beginTurn() {
       ? "Wacko AI thinking"
       : "Your move"
     : `${state.settings.intensity} chaos`;
-  if (!state.gameOver) startClock(state, state.turn);
+  if (!state.gameOver) {
+    startClock(state, state.turn);
+    if (state.turnCount > 1) playTone("turnSwitch");
+  }
   render();
   maybeQueueAiTurn();
 }
@@ -824,8 +835,13 @@ function updateClockDisplay() {
     if (!clockEl) continue;
     const remaining = getRemainingMs(state, color);
     clockEl.textContent = formatClock(remaining);
-    clockEl.classList.toggle("is-low", remaining != null && remaining <= CONFIG.lowTimeWarningMs);
+    const wasLow = clockEl.classList.contains("is-low");
+    const isLow = remaining != null && remaining <= CONFIG.lowTimeWarningMs;
+    clockEl.classList.toggle("is-low", isLow);
     clockEl.classList.toggle("is-active", state.clocks.activeColor === color && !state.clocks.paused);
+    if (isLow && !wasLow && state.clocks.activeColor === color) {
+      playTone("lowTime");
+    }
   }
 }
 
@@ -833,6 +849,7 @@ function handleGameOver() {
   pauseClock(state);
   window.clearTimeout(aiTimer);
   clearSave();
+  stopMusic();
   finishRecording(state.winner, state.gameOverReason, state.turnCount);
   updateStatsForGameOver();
   showAnnouncement(elements, state.gameOverReason, state.winner ? "critical" : "warning");

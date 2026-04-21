@@ -79,9 +79,14 @@
               <div class="turn-actions">
                 <button class="btn btn--ghost" type="button" data-help-open>Rules</button>
                 <button class="btn btn--ghost" type="button" id="soundToggle" aria-pressed="true">SFX On</button>
+                <button class="btn btn--ghost" type="button" id="musicToggle" aria-pressed="false">Music Off</button>
                 <button class="btn btn--ghost" type="button" id="undoButton" disabled>Undo</button>
                 <button class="btn btn--ghost" type="button" id="drawButton">Draw</button>
                 <button class="btn btn--ghost btn--danger" type="button" id="resignButton">Resign</button>
+              </div>
+              <div class="volume-controls">
+                <label class="volume-label">SFX <input type="range" id="sfxVolume" min="0" max="1" step="0.05" value="0.7" /></label>
+                <label class="volume-label">Music <input type="range" id="musicVolume" min="0" max="1" step="0.05" value="0.4" /></label>
               </div>
             </div>
 
