@@ -81,6 +81,7 @@ export function drawBoard(ctx, metrics, frame, options = {}) {
   drawSelection(ctx, metrics, options.selected, frame);
   drawValidMoves(ctx, metrics, options.validMoves || [], frame);
   drawTargeting(ctx, metrics, options.targetSquares || [], frame);
+  drawKeyboardCursor(ctx, metrics, options.keyboardCursor, frame);
 }
 
 function drawCheckHighlight(ctx, metrics, square, frame) {
@@ -237,6 +238,45 @@ function drawTargeting(ctx, metrics, squares, frame) {
     ctx.setLineDash([6, 6]);
     ctx.strokeRect(x + 8, y + 8, size - 16, size - 16);
   }
+
+  ctx.restore();
+}
+
+function drawKeyboardCursor(ctx, metrics, cursor, frame) {
+  if (!cursor) return;
+  const { x, y, size } = squareRect(metrics, cursor.row, cursor.col);
+  const pulse = Math.sin(frame / 8) * 0.3 + 0.7;
+  const inset = 2;
+
+  ctx.save();
+  ctx.strokeStyle = `rgba(0, 229, 255, ${pulse})`;
+  ctx.lineWidth = 3;
+  ctx.setLineDash([6, 4]);
+  ctx.strokeRect(x + inset, y + inset, size - inset * 2, size - inset * 2);
+  ctx.setLineDash([]);
+
+  // Corner brackets for visibility
+  const corner = size * 0.2;
+  ctx.lineWidth = 2.5;
+  ctx.strokeStyle = `rgba(0, 229, 255, ${pulse * 0.9})`;
+  ctx.beginPath();
+  // Top-left
+  ctx.moveTo(x + inset, y + inset + corner);
+  ctx.lineTo(x + inset, y + inset);
+  ctx.lineTo(x + inset + corner, y + inset);
+  // Top-right
+  ctx.moveTo(x + size - inset - corner, y + inset);
+  ctx.lineTo(x + size - inset, y + inset);
+  ctx.lineTo(x + size - inset, y + inset + corner);
+  // Bottom-right
+  ctx.moveTo(x + size - inset, y + size - inset - corner);
+  ctx.lineTo(x + size - inset, y + size - inset);
+  ctx.lineTo(x + size - inset - corner, y + size - inset);
+  // Bottom-left
+  ctx.moveTo(x + inset + corner, y + size - inset);
+  ctx.lineTo(x + inset, y + size - inset);
+  ctx.lineTo(x + inset, y + size - inset - corner);
+  ctx.stroke();
 
   ctx.restore();
 }

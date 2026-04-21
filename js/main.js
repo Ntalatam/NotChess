@@ -79,6 +79,19 @@ import {
   loadGameHistory,
   resetAllStats,
 } from "./stats.js";
+import {
+  applyA11ySettings,
+  getA11ySettings,
+  setColorblindMode,
+  setReducedMotion,
+  setFontScale,
+  isReducedMotion,
+  getColorblindPalette,
+  initScreenReaderAnnouncer,
+  announceToScreenReader,
+  createKeyboardNav,
+  saveA11ySettings,
+} from "./accessibility.js";
 
 const STORAGE_KEY = "wacko-chess-settings-v1";
 const STATS_KEY = "wacko-chess-stats-v1";
@@ -123,6 +136,8 @@ const elements = {
   endOverlay: document.querySelector("#endOverlay"),
   replaysButton: document.querySelector("#replaysButton"),
   statsButton: document.querySelector("#statsButton"),
+  reducedMotionInput: document.querySelector("#reducedMotionInput"),
+  fontScaleSlider: document.querySelector("#fontScaleSlider"),
 };
 
 let state = createInitialState({ stats: loadStats() });
@@ -134,9 +149,87 @@ let hoverMovesCache = null;
 let activePlayback = null;
 let playbackTimer = null;
 
+const kbNav = createKeyboardNav({
+  onCursorMove(row, col) {
+    hoverSquare = { row, col };
+    hoverMovesCache = null;
+    const piece = getPieceAt(state.board, row, col);
+    const coords = `${"abcdefgh"[col]}${8 - row}`;
+    if (piece) {
+      announceToScreenReader(`${coords}: ${piece.color} ${piece.type}`);
+    } else {
+      announceToScreenReader(coords);
+    }
+    render();
+  },
+  onSelect(row, col) {
+    if (state.gameOver || !elements.menuOverlay.hidden) return;
+    if (isAiTurn()) return;
+
+    if (state.targeting) {
+      handleTargetingClick({ row, col });
+      render();
+      return;
+    }
+
+    const clickedPiece = getPieceAt(state.board, row, col);
+
+    if (state.selected) {
+      const isOwn = clickedPiece && isPlayersPiece(state, clickedPiece);
+      if (isOwn && (row !== state.selected.row || col !== state.selected.col)) {
+        clearSelection();
+        selectPiece(row, col);
+        render();
+        return;
+      }
+      const target = state.validMoves.find((m) => m.row === row && m.col === col);
+      if (target) {
+        const promos = getPromotionChoices(state, state.selected, { row, col });
+        if (promos.length) {
+          state.pendingPromotion = { from: { ...state.selected }, to: { row, col }, choices: promos };
+          renderPromotionChoices(promos);
+          return;
+        }
+        commitMove(state.selected, { row, col });
+        clearSelection();
+      } else {
+        clearSelection();
+      }
+      render();
+      return;
+    }
+
+    if (clickedPiece && isPlayersPiece(state, clickedPiece)) {
+      selectPiece(row, col);
+      render();
+    }
+  },
+  onCancel() {
+    clearSelection();
+    render();
+  },
+  onTab(row, col, reverse) {
+    const pieces = [];
+    for (let r = 0; r < 8; r++) {
+      for (let c = 0; c < 8; c++) {
+        const p = getPieceAt(state.board, r, c);
+        if (p && p.color === state.turn) pieces.push({ row: r, col: c });
+      }
+    }
+    if (!pieces.length) return null;
+    const idx = pieces.findIndex((p) => p.row === row && p.col === col);
+    const next = reverse
+      ? (idx <= 0 ? pieces.length - 1 : idx - 1)
+      : (idx < 0 || idx >= pieces.length - 1 ? 0 : idx + 1);
+    return pieces[next];
+  },
+});
+
 function init() {
   loadThemePreference();
   applyStoredSettings();
+  applyA11ySettings();
+  initScreenReaderAnnouncer();
   bindEvents();
   initAudioToggle(elements.soundToggle);
   initMusicToggle(elements.musicToggle);
@@ -176,6 +269,11 @@ function bindEvents() {
   window.addEventListener("keydown", handleKeydown);
   elements.replaysButton?.addEventListener("click", openReplayList);
   elements.statsButton?.addEventListener("click", openStatsDashboard);
+  for (const radio of elements.startForm.querySelectorAll('input[name="colorblind"]')) {
+    radio.addEventListener("change", (e) => setColorblindMode(e.target.value));
+  }
+  elements.reducedMotionInput?.addEventListener("change", (e) => setReducedMotion(e.target.checked));
+  elements.fontScaleSlider?.addEventListener("input", (e) => setFontScale(Number(e.target.value)));
   for (const radio of elements.startForm.querySelectorAll('input[name="theme"]')) {
     radio.addEventListener("change", (e) => setTheme(e.target.value));
   }
@@ -670,12 +768,18 @@ function isMatchLive() {
 }
 
 function handleKeydown(event) {
+  // Keyboard board navigation (arrow keys, Enter, Tab)
+  if (elements.menuOverlay.hidden && !state.gameOver) {
+    if (kbNav.handleKey(event)) return;
+  }
+
   if (event.key !== "Escape") return;
   elements.helpOverlay.hidden = true;
   elements.promotionOverlay.hidden = true;
   state.targeting = null;
   state.pendingPromotion = null;
   clearSelection();
+  kbNav.deactivate();
   if (isMatchLive()) resumeClock(state);
 }
 
@@ -709,6 +813,13 @@ function commitMove(from, to, promotion = undefined) {
 
   recordMove(from, to, promotion, previousTurn);
   state.turnActions.moveMade = true;
+
+  // Screen reader announcement
+  const fromCoord = `${"abcdefgh"[from.col]}${8 - from.row}`;
+  const toCoord = `${"abcdefgh"[to.col]}${8 - to.row}`;
+  const pType = result.movingPiece.type;
+  const capText = result.captured ? ", captures" : "";
+  announceToScreenReader(`${previousTurn} ${pType} ${fromCoord} to ${toCoord}${capText}`);
 
   state.animation = {
     pieceId: result.movingPiece.id,
@@ -843,6 +954,7 @@ function tick() {
     lastMove: state.lastMove,
     checkSquare: state.check ? findKingSquare(state) : null,
     hoverMoves: getHoverMoves(),
+    keyboardCursor: kbNav.isActive() ? kbNav.getCursor() : null,
   });
   drawTiles(boardCtx, boardMetrics, state.specialTiles, frame);
   drawPieces(boardCtx, boardMetrics, state, frame, now);
@@ -882,6 +994,10 @@ function handleGameOver() {
   finishRecording(state.winner, state.gameOverReason, state.turnCount);
   updateStatsForGameOver();
   showAnnouncement(elements, state.gameOverReason, state.winner ? "critical" : "warning");
+  announceToScreenReader(
+    state.winner ? `Game over. ${state.winner} wins. ${state.gameOverReason}` : `Game over. Draw. ${state.gameOverReason}`,
+    "assertive"
+  );
   playTone("end");
   render();
 }
@@ -1038,6 +1154,12 @@ function readSettingsForm() {
 function applyStoredSettings() {
   setRadio("theme", getThemeId());
   setRadio("pieceStyle", getPieceStyleId());
+
+  // Restore accessibility settings to form
+  const a11y = getA11ySettings();
+  setRadio("colorblind", a11y.colorblindMode || "none");
+  if (elements.reducedMotionInput) elements.reducedMotionInput.checked = a11y.reducedMotion;
+  if (elements.fontScaleSlider) elements.fontScaleSlider.value = a11y.fontScale;
 
   const settings = loadJson(STORAGE_KEY, null);
   if (!settings) return;

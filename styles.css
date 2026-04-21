@@ -1838,3 +1838,68 @@ button {
     grid-template-columns: 1fr;
   }
 }
+
+/* ── Accessibility ── */
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.a11y-toggles {
+  display: flex;
+  gap: var(--sp-4);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* Reduced motion: disable all CSS transitions and animations */
+.a11y-reduced-motion *,
+.a11y-reduced-motion *::before,
+.a11y-reduced-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+}
+
+/* Also respect OS preference */
+@media (prefers-reduced-motion: reduce) {
+  .board-stage .is-shaking {
+    animation: none;
+  }
+}
+
+/* Colorblind mode overrides for piece-distinguishing UI elements */
+[data-colorblind="deuteranopia"] .player-panel[data-color="white"],
+[data-colorblind="protanopia"] .player-panel[data-color="white"],
+[data-colorblind="tritanopia"] .player-panel[data-color="white"] {
+  border-color: var(--cb-white, currentColor);
+}
+
+[data-colorblind="deuteranopia"] .player-panel[data-color="black"],
+[data-colorblind="protanopia"] .player-panel[data-color="black"],
+[data-colorblind="tritanopia"] .player-panel[data-color="black"] {
+  border-color: var(--cb-black, currentColor);
+}
+
+[data-colorblind="deuteranopia"] .hud-chip,
+[data-colorblind="protanopia"] .hud-chip,
+[data-colorblind="tritanopia"] .hud-chip {
+  border-color: var(--cb-accent, currentColor);
+}
+
+/* Colorblind-aware card colors */
+[data-colorblind]:not([data-colorblind="none"]) .chaos-card--button[data-card-color="white"] {
+  border-color: var(--cb-white);
+}
+
+[data-colorblind]:not([data-colorblind="none"]) .chaos-card--button[data-card-color="black"] {
+  border-color: var(--cb-black);
+}

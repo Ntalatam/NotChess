@@ -204,6 +204,24 @@
             <label><input type="radio" name="pieceStyle" value="elegant" /><span>Elegant</span></label>
           </fieldset>
 
+          <fieldset class="segmented segmented--a11y">
+            <legend>Colorblind Mode</legend>
+            <label><input type="radio" name="colorblind" value="none" checked /><span>Off</span></label>
+            <label><input type="radio" name="colorblind" value="deuteranopia" /><span>Deutan</span></label>
+            <label><input type="radio" name="colorblind" value="protanopia" /><span>Protan</span></label>
+            <label><input type="radio" name="colorblind" value="tritanopia" /><span>Tritan</span></label>
+          </fieldset>
+
+          <div class="a11y-toggles">
+            <label class="switch-field">
+              <input id="reducedMotionInput" type="checkbox" />
+              <span>Reduced Motion</span>
+            </label>
+            <label class="volume-label">
+              Font Size <input type="range" id="fontScaleSlider" min="0.8" max="1.4" step="0.05" value="1" />
+            </label>
+          </div>
+
           <div class="stats-strip" id="statsStrip"></div>
           <button class="btn btn--outline-cyan" type="button" id="resumeButton" hidden>Continue Match</button>
           <button class="btn btn--primary" type="submit">New Match</button>

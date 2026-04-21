@@ -1,6 +1,7 @@
 import { squareRect } from "./board.js";
 import { MUTATION_DEFINITIONS } from "./mutations.js";
 import { getTheme, getPieceStyle } from "./themes.js";
+import { getColorblindPalette } from "./accessibility.js";
 
 export const PIECE_TYPES = {
   p: { name: "Pawn", value: 1 },
@@ -152,6 +153,33 @@ function drawPieceAt(ctx, piece, x, y, size, frame, moving) {
     ctx.beginPath();
     ctx.arc(x + size * 0.78, y + size * 0.22, size * 0.085, 0, Math.PI * 2);
     ctx.fill();
+  }
+
+  // Colorblind indicator: circle for white, diamond for black
+  const cbPalette = getColorblindPalette();
+  if (cbPalette) {
+    const markerSize = size * 0.08;
+    const mx = x + size * 0.14;
+    const my = y + size * 0.14;
+    ctx.shadowBlur = 0;
+    ctx.lineWidth = 1.5;
+    if (piece.color === "white") {
+      ctx.strokeStyle = cbPalette.white;
+      ctx.fillStyle = cbPalette.white;
+      ctx.beginPath();
+      ctx.arc(mx, my, markerSize, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      ctx.strokeStyle = cbPalette.black;
+      ctx.fillStyle = cbPalette.black;
+      ctx.beginPath();
+      ctx.moveTo(mx, my - markerSize);
+      ctx.lineTo(mx + markerSize, my);
+      ctx.lineTo(mx, my + markerSize);
+      ctx.lineTo(mx - markerSize, my);
+      ctx.closePath();
+      ctx.fill();
+    }
   }
 
   drawMutationBadges(ctx, piece, x, y, size);

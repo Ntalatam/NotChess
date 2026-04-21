@@ -4,10 +4,12 @@
  */
 
 import { squareRect } from "./board.js";
+import { isReducedMotion } from "./accessibility.js";
 
 const activeEffects = [];
 
 export function addEffect(effect) {
+  if (isReducedMotion()) return; // Skip visual effects in reduced motion mode
   activeEffects.push({ ...effect, startedAt: performance.now() });
 }
 
