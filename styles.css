@@ -303,6 +303,17 @@ button {
   transform: translateY(-1px) scale(1.0);
 }
 
+.chaos-card.is-playing {
+  animation: card-play 0.35s ease-out forwards;
+  pointer-events: none;
+}
+
+@keyframes card-play {
+  0% { transform: scale(1); opacity: 1; }
+  40% { transform: scale(1.1) rotate(-2deg); opacity: 1; }
+  100% { transform: scale(0.6) translateY(-30px) rotate(4deg); opacity: 0; }
+}
+
 .chaos-card--back {
   background:
     repeating-conic-gradient(rgba(0, 229, 255, 0.04) 0% 25%, transparent 0% 50%) 0 0 / 12px 12px,
@@ -479,6 +490,12 @@ button {
   font-size: clamp(32px, 6vw, 68px);
   text-transform: uppercase;
   text-shadow: 0 0 40px rgba(192, 38, 211, 0.4);
+  animation: chaos-text-glow 0.8s ease-in-out infinite alternate;
+}
+
+@keyframes chaos-text-glow {
+  from { text-shadow: 0 0 40px rgba(192, 38, 211, 0.4), 0 0 80px rgba(255, 59, 92, 0.1); }
+  to { text-shadow: 0 0 60px rgba(192, 38, 211, 0.7), 0 0 120px rgba(255, 59, 92, 0.3), 0 0 4px rgba(255, 255, 255, 0.5); }
 }
 
 @keyframes chaosPulse {

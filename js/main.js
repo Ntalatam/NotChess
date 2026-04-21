@@ -44,6 +44,14 @@ import {
   syncHudStats,
 } from "./state.js";
 import { drawTiles } from "./tiles.js";
+import {
+  drawEffects,
+  triggerCheckFlash,
+  triggerMutationGlow,
+  triggerCardFlash,
+  triggerChaosWave,
+  triggerMoveTrail,
+} from "./effects.js";
 import { renderEndOverlay, renderShell, showAnnouncement } from "./ui.js";
 import {
   loadThemePreference,
@@ -555,6 +563,7 @@ function handleCardClick(event) {
       recordCardPlay(color, handIndex, [], result.card.id);
       showAnnouncement(elements, `${result.definition.name} played`, "warning");
       playTone("card");
+      triggerCardFlash();
     }
     render();
     return;
@@ -593,6 +602,7 @@ function handleTargetingClick(square) {
     recordCardPlay(tColor, tHandIndex, tTargets, result.card.id);
     showAnnouncement(elements, `${result.definition.name} played`, "warning");
     playTone("card");
+    triggerCardFlash();
   }
   state.targeting = null;
   state.targetSquares = [];
@@ -696,6 +706,8 @@ function commitMove(from, to, promotion = undefined) {
     duration: CONFIG.moveAnimMs,
   };
 
+  triggerMoveTrail(result.from.row, result.from.col, result.to.row, result.to.col, result.movingPiece.color);
+
   if (result.captured) {
     state.effects.captures.push({
       row: result.to.row,
@@ -710,6 +722,7 @@ function commitMove(from, to, promotion = undefined) {
   } else if (result.gainedMutation) {
     showAnnouncement(elements, `${result.gainedMutation.name} mutation gained`, "warning");
     playTone("mutation");
+    triggerMutationGlow(result.to.row, result.to.col, result.movingPiece.color);
   } else if (result.captured) {
     playTone("capture");
   } else {
@@ -721,6 +734,8 @@ function commitMove(from, to, promotion = undefined) {
   } else if (state.check) {
     showAnnouncement(elements, "Check", "critical");
     playTone("check");
+    const kingSquare = findKingSquare(state);
+    if (kingSquare) triggerCheckFlash(kingSquare.row, kingSquare.col);
   }
 
   render();
@@ -818,6 +833,7 @@ function tick() {
   });
   drawTiles(boardCtx, boardMetrics, state.specialTiles, frame);
   drawPieces(boardCtx, boardMetrics, state, frame, now);
+  drawEffects(boardCtx, boardMetrics, now);
   drawMenuBackdrop(frame);
   if (frame % 15 === 0) updateClockDisplay();
   requestAnimationFrame(tick);
@@ -910,6 +926,7 @@ function updateStatsForGameOver() {
 function handleMajorChaos(event) {
   if (!event) return;
   recordMajorChaos(event.name);
+  triggerChaosWave();
   elements.majorChaosName.textContent = event.name;
   elements.majorChaosOverlay.hidden = false;
   playTone("chaos");
