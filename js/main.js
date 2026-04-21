@@ -72,6 +72,13 @@ import {
   decodeReplay,
   createPlayback,
 } from "./replay.js";
+import {
+  loadExtendedStats,
+  recordGameResult,
+  getDisplayStats,
+  loadGameHistory,
+  resetAllStats,
+} from "./stats.js";
 
 const STORAGE_KEY = "wacko-chess-settings-v1";
 const STATS_KEY = "wacko-chess-stats-v1";
@@ -115,6 +122,7 @@ const elements = {
   helpOverlay: document.querySelector("#helpOverlay"),
   endOverlay: document.querySelector("#endOverlay"),
   replaysButton: document.querySelector("#replaysButton"),
+  statsButton: document.querySelector("#statsButton"),
 };
 
 let state = createInitialState({ stats: loadStats() });
@@ -167,6 +175,7 @@ function bindEvents() {
   document.addEventListener("click", handleHelpClick);
   window.addEventListener("keydown", handleKeydown);
   elements.replaysButton?.addEventListener("click", openReplayList);
+  elements.statsButton?.addEventListener("click", openStatsDashboard);
   for (const radio of elements.startForm.querySelectorAll('input[name="theme"]')) {
     radio.addEventListener("change", (e) => setTheme(e.target.value));
   }
@@ -222,6 +231,8 @@ function handleStart(event) {
   setupChaosDeck(state);
   state.status = `${settings.intensity} chaos`;
   state.log = [`${settings.whiteName} and ${settings.blackName} begin.`];
+  state._startTime = Date.now();
+  state._cardsPlayedLog = [];
   startRecording(settings);
   beginTurn();
 
@@ -561,6 +572,7 @@ function handleCardClick(event) {
     const result = playCard(state, color, handIndex, []);
     if (result) {
       recordCardPlay(color, handIndex, [], result.card.id);
+      if (state._cardsPlayedLog) state._cardsPlayedLog.push(result.card.id);
       showAnnouncement(elements, `${result.definition.name} played`, "warning");
       playTone("card");
       triggerCardFlash();
@@ -600,6 +612,7 @@ function handleTargetingClick(square) {
   const result = playCard(state, tColor, tHandIndex, tTargets);
   if (result) {
     recordCardPlay(tColor, tHandIndex, tTargets, result.card.id);
+    if (state._cardsPlayedLog) state._cardsPlayedLog.push(result.card.id);
     showAnnouncement(elements, `${result.definition.name} played`, "warning");
     playTone("card");
     triggerCardFlash();
@@ -912,15 +925,8 @@ function drawMenuBackdrop(currentFrame) {
 
 function updateStatsForGameOver() {
   if (state.stats._updatedForCurrentGame) return;
-  state.stats.gamesPlayed += 1;
-  if (state.winner === "white") state.stats.whiteWins += 1;
-  if (state.winner === "black") state.stats.blackWins += 1;
-  if (!state.winner) state.stats.draws += 1;
-  state.stats.chaosSurvived += state.majorChaosCount;
-  state.stats.mostMutations = Math.max(state.stats.mostMutations, state.mutationStats.mostOnPiece);
   state.stats._updatedForCurrentGame = true;
-  const { _updatedForCurrentGame, ...persistable } = state.stats;
-  localStorage.setItem(STATS_KEY, JSON.stringify(persistable));
+  recordGameResult(state, state.stats);
 }
 
 function handleMajorChaos(event) {
@@ -961,6 +967,7 @@ function runAiTurn() {
     const result = playCard(state, "black", cardPlay.handIndex, cardPlay.targets);
     if (result) {
       recordCardPlay("black", cardPlay.handIndex, cardPlay.targets, result.card.id);
+      if (state._cardsPlayedLog) state._cardsPlayedLog.push(result.card.id);
       showAnnouncement(elements, `AI played ${result.definition.name}`, "warning");
       playTone("card");
       render();
@@ -988,6 +995,7 @@ function runAiTurn() {
       const postResult = playCard(state, "black", postCard.handIndex, postCard.targets);
       if (postResult) {
         recordCardPlay("black", postCard.handIndex, postCard.targets, postResult.card.id);
+        if (state._cardsPlayedLog) state._cardsPlayedLog.push(postResult.card.id);
         showAnnouncement(elements, `AI played ${postResult.definition.name}`, "warning");
         playTone("card");
         render();
@@ -1054,15 +1062,7 @@ function persistSettings(settings) {
 }
 
 function loadStats() {
-  return {
-    gamesPlayed: 0,
-    whiteWins: 0,
-    blackWins: 0,
-    draws: 0,
-    chaosSurvived: 0,
-    mostMutations: 0,
-    ...loadJson(STATS_KEY, {}),
-  };
+  return loadExtendedStats();
 }
 
 function loadJson(key, fallback) {
@@ -1382,6 +1382,114 @@ function exitReplay() {
   elements.menuOverlay.hidden = false;
   elements.appShell.dataset.screen = "menu";
   render();
+}
+
+function openStatsDashboard() {
+  const stats = getDisplayStats(loadExtendedStats());
+  const history = loadGameHistory();
+  const overlay = elements.endOverlay;
+
+  const recentGames = history.slice(-10).reverse().map((g) => {
+    const date = new Date(g.date).toLocaleDateString();
+    const result = g.winner ? `${g.winner[0].toUpperCase()}${g.winner.slice(1)} wins` : "Draw";
+    const dur = g.duration ? `${Math.floor(g.duration / 60)}m${g.duration % 60}s` : "";
+    return `<li class="stats-history-item"><span>${result}</span><span>${g.turns} turns</span><span>${dur}</span><span>${date}</span></li>`;
+  }).join("");
+
+  const topCardsHtml = stats.topCards.length
+    ? stats.topCards.map((c) => {
+        const def = getCardDefinition({ id: c.id });
+        const name = def ? def.name : c.id;
+        return `<li><strong>${escapeHtmlLocal(name)}</strong> <span class="stats-card-count">&times;${c.count}</span></li>`;
+      }).join("")
+    : "<li>No cards played yet</li>";
+
+  overlay.hidden = false;
+  overlay.innerHTML = `
+    <section class="end-panel stats-dashboard">
+      <h2>Stats Dashboard</h2>
+      <div class="stats-grid">
+        <div class="stat-block">
+          <strong>${stats.gamesPlayed}</strong><span>Games</span>
+        </div>
+        <div class="stat-block">
+          <strong>${stats.whiteWins}</strong><span>White Wins</span>
+        </div>
+        <div class="stat-block">
+          <strong>${stats.blackWins}</strong><span>Black Wins</span>
+        </div>
+        <div class="stat-block">
+          <strong>${stats.draws}</strong><span>Draws</span>
+        </div>
+        <div class="stat-block stat-block--elo">
+          <strong>${stats.eloWhite}</strong><span>White ELO</span>
+        </div>
+        <div class="stat-block stat-block--elo">
+          <strong>${stats.eloBlack}</strong><span>Black ELO</span>
+        </div>
+        <div class="stat-block stat-block--elo">
+          <strong>${stats.eloAi}</strong><span>AI ELO</span>
+        </div>
+        <div class="stat-block">
+          <strong>${stats.winRate}%</strong><span>Win Rate</span>
+        </div>
+        <div class="stat-block">
+          <strong>${stats.bestStreak}</strong><span>Best Streak</span>
+        </div>
+        <div class="stat-block">
+          <strong>${stats.currentStreak}</strong><span>Current Streak</span>
+        </div>
+        <div class="stat-block">
+          <strong>${stats.avgTurns}</strong><span>Avg Turns</span>
+        </div>
+        <div class="stat-block">
+          <strong>${stats.avgCards}</strong><span>Avg Cards/Game</span>
+        </div>
+        <div class="stat-block">
+          <strong>${stats.fastestWin ?? "-"}</strong><span>Fastest Win</span>
+        </div>
+        <div class="stat-block">
+          <strong>${stats.longestGame || "-"}</strong><span>Longest Game</span>
+        </div>
+        <div class="stat-block">
+          <strong>${stats.totalMutations}</strong><span>Total Mutations</span>
+        </div>
+        <div class="stat-block">
+          <strong>${stats.chaosSurvived}</strong><span>Chaos Survived</span>
+        </div>
+      </div>
+      <div class="stats-sections">
+        <div class="stats-section">
+          <h3>Favorite Cards</h3>
+          <ul class="stats-top-cards">${topCardsHtml}</ul>
+        </div>
+        <div class="stats-section">
+          <h3>Recent Games</h3>
+          <ul class="stats-history">${recentGames || '<li>No games yet</li>'}</ul>
+        </div>
+      </div>
+      <div class="end-actions">
+        <button class="btn btn--ghost btn--danger" type="button" id="statsResetBtn">Reset Stats</button>
+        <button class="btn btn--ghost" type="button" data-end-action="menu">Back</button>
+      </div>
+    </section>
+  `;
+
+  overlay.querySelector("#statsResetBtn")?.addEventListener("click", () => {
+    if (!window.confirm("Reset all stats and game history? This cannot be undone.")) return;
+    const fresh = resetAllStats();
+    state.stats = fresh;
+    openStatsDashboard();
+  });
+}
+
+function escapeHtmlLocal(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 }
 
 init();

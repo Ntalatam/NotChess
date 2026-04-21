@@ -1337,6 +1337,20 @@ button {
   font-weight: 600;
 }
 
+.end-elo {
+  display: flex;
+  justify-content: center;
+  gap: var(--sp-4);
+  margin-bottom: var(--sp-4);
+  font-size: var(--fs-sm);
+  opacity: 0.85;
+}
+
+.end-elo strong {
+  color: var(--cyan, #00e5ff);
+  font-family: "Cinzel", serif;
+}
+
 .end-actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1719,4 +1733,108 @@ button {
 .sidebar::-webkit-scrollbar-thumb:hover,
 .event-log::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.15);
+}
+
+/* ── Stats Dashboard ── */
+
+.stats-dashboard {
+  max-width: 640px;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+
+.stat-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.6rem 0.3rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+}
+
+.stat-block strong {
+  font-size: 1.3rem;
+  color: var(--gold, #f0c040);
+  font-family: "Cinzel", serif;
+}
+
+.stat-block span {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.7;
+  margin-top: 0.15rem;
+}
+
+.stat-block--elo strong {
+  color: var(--cyan, #00e5ff);
+}
+
+.stats-sections {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+.stats-section h3 {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.7;
+  margin-bottom: 0.5rem;
+}
+
+.stats-top-cards {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.stats-top-cards li {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.3rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 0.8rem;
+}
+
+.stats-card-count {
+  color: var(--cyan, #00e5ff);
+  opacity: 0.8;
+}
+
+.stats-history {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.stats-history-item {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  gap: 0.5rem;
+  padding: 0.25rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 0.7rem;
+  opacity: 0.85;
+}
+
+@media (max-width: 600px) {
+  .stats-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .stats-sections {
+    grid-template-columns: 1fr;
+  }
 }

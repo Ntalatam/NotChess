@@ -27,6 +27,9 @@ export function renderEndOverlay(container, state) {
   }
 
   const title = state.winner ? `${capitalize(state.winner)} wins` : "Draw";
+  const eloWhite = state.stats?.eloWhite ?? 1200;
+  const eloBlack = state.settings?.aiOpponent ? state.stats?.eloAi ?? 1200 : state.stats?.eloBlack ?? 1200;
+  const eloLabel = state.settings?.aiOpponent ? "AI" : "Black";
   container.hidden = false;
   container.innerHTML = `
     <section class="end-panel">
@@ -36,6 +39,10 @@ export function renderEndOverlay(container, state) {
         <span>Turn ${state.turnCount}</span>
         <span>${state.majorChaosCount} major chaos</span>
         <span>${state.cardsPlayed} cards played</span>
+      </div>
+      <div class="end-elo">
+        <span>White ELO: <strong>${eloWhite}</strong></span>
+        <span>${escapeHtml(eloLabel)} ELO: <strong>${eloBlack}</strong></span>
       </div>
       <div class="end-actions">
         <button class="btn btn--primary" type="button" data-end-action="restart">Play Again</button>
@@ -161,6 +168,8 @@ function renderStats(container, stats) {
     ["White", stats.whiteWins],
     ["Black", stats.blackWins],
     ["Draws", stats.draws],
+    ["ELO W", stats.eloWhite || 1200],
+    ["Streak", stats.bestStreak || 0],
   ]
     .map(([label, value]) => `<div class="stat-tile"><strong>${value}</strong><span>${label}</span></div>`)
     .join("");
