@@ -71,6 +71,7 @@ export function startMusic() {
 
 export function stopMusic() {
   musicPlaying = false;
+  if (musicNodes._timeout) clearTimeout(musicNodes._timeout);
   for (const node of musicNodes) {
     try { node.stop(); } catch { /* already stopped */ }
   }

@@ -53,7 +53,7 @@ export function isRecording() {
 
 // ── Storage ──
 
-function saveReplay(replay) {
+export function saveReplay(replay) {
   const replays = loadAllReplays();
   replays.unshift(replay);
   if (replays.length > MAX_STORED_REPLAYS) replays.length = MAX_STORED_REPLAYS;

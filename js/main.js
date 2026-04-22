@@ -71,6 +71,7 @@ import {
   encodeReplay,
   decodeReplay,
   createPlayback,
+  saveReplay,
 } from "./replay.js";
 import {
   loadExtendedStats,
@@ -94,7 +95,6 @@ import {
 } from "./accessibility.js";
 
 const STORAGE_KEY = "wacko-chess-settings-v1";
-const STATS_KEY = "wacko-chess-stats-v1";
 
 const elements = {
   appShell: document.querySelector("#appShell"),
@@ -299,6 +299,7 @@ function handleDraw() {
 }
 
 function handleUndo() {
+  if (state.gameOver) return;
   if (!state.undoStack.length) return;
   if (isAiTurn()) {
     showAnnouncement(elements, "Wait for your turn", "critical");
@@ -989,6 +990,7 @@ function updateClockDisplay() {
 function handleGameOver() {
   pauseClock(state);
   window.clearTimeout(aiTimer);
+  window.clearTimeout(handleMajorChaos.timer);
   clearSave();
   stopMusic();
   finishRecording(state.winner, state.gameOverReason, state.turnCount);
@@ -1275,6 +1277,7 @@ function openReplayList() {
     </section>
   `;
 
+  overlay.removeEventListener("click", handleReplayListClick);
   overlay.addEventListener("click", handleReplayListClick);
   document.getElementById("replayImportBtn")?.addEventListener("click", handleReplayImport);
 }
@@ -1333,11 +1336,7 @@ function handleReplayImport() {
     showAnnouncement(elements, "Invalid replay code", "critical");
     return;
   }
-  // Save it to the list
-  const replays = loadAllReplays();
-  replays.unshift(replay);
-  if (replays.length > 10) replays.length = 10;
-  localStorage.setItem("wacko-chess-replays-v1", JSON.stringify(replays));
+  saveReplay(replay);
   showAnnouncement(elements, "Replay imported!", "warning");
   openReplayList();
 }

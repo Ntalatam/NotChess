@@ -358,6 +358,8 @@ export function saveGame(state) {
   snap.settings = { ...state.settings };
   snap.gameOver = false;
   snap.status = state.status || "";
+  snap._startTime = state._startTime || null;
+  snap._cardsPlayedLog = state._cardsPlayedLog ? [...state._cardsPlayedLog] : null;
   try {
     localStorage.setItem(SAVE_KEY, JSON.stringify(snap));
   } catch {
@@ -408,6 +410,8 @@ export function restoreSavedGame(state, save) {
   state.players = save.players;
   state.settings = save.settings || state.settings;
   state.status = save.status || "";
+  if (save._startTime) state._startTime = save._startTime;
+  if (save._cardsPlayedLog) state._cardsPlayedLog = [...save._cardsPlayedLog];
   state.selected = null;
   state.validMoves = [];
   state.targetSquares = [];
