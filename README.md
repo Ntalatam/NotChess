@@ -1,4 +1,4 @@
-# Wacko Chess v1.3
+# Wacko Chess v2.3
 
 Wacko Chess is a static browser-based chess variant with a polished canvas board, local two-player mode, Wacko AI opponent mode, chaos cards, mutations, animated hazards, and persistent lightweight stats.
 

@@ -4,13 +4,13 @@ import { readFileSync } from "node:fs";
 import { chooseAiCardPlay, chooseAiMove } from "../js/ai.js";
 import { createInitialState } from "../js/state.js";
 
-test("v1.3 AI option is exposed in release metadata and start screen", () => {
+test("v2.3 AI option is exposed in release metadata and start screen", () => {
   const packageJson = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
   const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 
-  assert.equal(packageJson.version, "1.3.0");
+  assert.equal(packageJson.version, "2.3.0");
   assert.match(html, /Play vs Wacko AI/);
-  assert.match(html, /v1\.3/);
+  assert.match(html, /v2\.3/);
 });
 
 test("AI chooses a legal opening move for black", () => {
