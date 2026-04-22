@@ -1009,33 +1009,29 @@ function drawMenuBackdrop(currentFrame) {
   const height = elements.menuCanvas.clientHeight;
 
   ctx.clearRect(0, 0, width, height);
-  const gradient = ctx.createLinearGradient(0, 0, width, height);
-  gradient.addColorStop(0, "#08090f");
-  gradient.addColorStop(0.42, "#17202a");
-  gradient.addColorStop(0.72, "#160d19");
-  gradient.addColorStop(1, "#090a0e");
-  ctx.fillStyle = gradient;
-  ctx.fillRect(0, 0, width, height);
 
-  const tile = Math.max(72, Math.floor(Math.min(width, height) / 9));
-  const offset = (currentFrame * 0.18) % tile;
-  for (let y = -tile; y < height + tile; y += tile) {
-    for (let x = -tile; x < width + tile; x += tile) {
-      const row = Math.floor((y + offset) / tile);
-      const col = Math.floor((x - offset) / tile);
-      ctx.fillStyle = (row + col) % 2 === 0 ? "rgba(240, 192, 64, 0.06)" : "rgba(0, 229, 255, 0.055)";
-      ctx.fillRect(x - offset, y + offset, tile, tile);
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.035)";
-      ctx.strokeRect(x - offset, y + offset, tile, tile);
-    }
-  }
-
+  // Soft animated gradient orbs for a clean ambient backdrop
   ctx.save();
   ctx.globalCompositeOperation = "screen";
-  ctx.fillStyle = "rgba(255, 59, 92, 0.12)";
-  ctx.fillRect(width * 0.64, 0, 8 + Math.sin(currentFrame / 13) * 3, height);
-  ctx.fillStyle = "rgba(57, 255, 20, 0.08)";
-  ctx.fillRect(width * 0.2, 0, 4, height);
+
+  const orb1X = width * 0.25 + Math.sin(currentFrame / 180) * width * 0.08;
+  const orb1Y = height * 0.3 + Math.cos(currentFrame / 220) * height * 0.06;
+  const orb1R = Math.min(width, height) * 0.45;
+  const grad1 = ctx.createRadialGradient(orb1X, orb1Y, 0, orb1X, orb1Y, orb1R);
+  grad1.addColorStop(0, "rgba(240, 192, 64, 0.18)");
+  grad1.addColorStop(1, "rgba(240, 192, 64, 0)");
+  ctx.fillStyle = grad1;
+  ctx.fillRect(0, 0, width, height);
+
+  const orb2X = width * 0.78 + Math.cos(currentFrame / 200) * width * 0.06;
+  const orb2Y = height * 0.7 + Math.sin(currentFrame / 240) * height * 0.05;
+  const orb2R = Math.min(width, height) * 0.5;
+  const grad2 = ctx.createRadialGradient(orb2X, orb2Y, 0, orb2X, orb2Y, orb2R);
+  grad2.addColorStop(0, "rgba(0, 229, 255, 0.14)");
+  grad2.addColorStop(1, "rgba(0, 229, 255, 0)");
+  ctx.fillStyle = grad2;
+  ctx.fillRect(0, 0, width, height);
+
   ctx.restore();
 }
 

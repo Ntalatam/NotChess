@@ -148,85 +148,101 @@
           <canvas id="menuCanvas" width="1280" height="720"></canvas>
         </div>
         <form class="start-panel" id="startForm">
-          <p class="eyebrow">v1.3 Local / AI</p>
-          <h1 id="menuTitle">Wacko Chess</h1>
-          <button class="btn btn--outline-cyan" type="button" data-help-open>Rules & Controls</button>
+          <header class="start-header">
+            <div class="start-header__title">
+              <p class="eyebrow">v1.3 Local / AI</p>
+              <h1 id="menuTitle">Wacko Chess</h1>
+            </div>
+            <button class="btn btn--outline-cyan btn--sm" type="button" data-help-open>Rules & Controls</button>
+          </header>
 
-          <div class="form-grid">
-            <label class="field">
-              <span>White Player</span>
-              <input id="whiteNameInput" name="whiteName" autocomplete="off" maxlength="20" value="White" />
-            </label>
-            <label class="field">
-              <span>Black Player</span>
-              <input id="blackNameInput" name="blackName" autocomplete="off" maxlength="20" value="Black" />
-            </label>
-          </div>
+          <div class="start-grid">
+            <section class="start-section">
+              <h3 class="start-section__title">Players</h3>
+              <div class="form-grid">
+                <label class="field">
+                  <span>White</span>
+                  <input id="whiteNameInput" name="whiteName" autocomplete="off" maxlength="20" value="White" />
+                </label>
+                <label class="field">
+                  <span>Black</span>
+                  <input id="blackNameInput" name="blackName" autocomplete="off" maxlength="20" value="Black" />
+                </label>
+              </div>
+              <label class="switch-field">
+                <input id="aiOpponentInput" name="aiOpponent" type="checkbox" />
+                <span>Play vs Wacko AI</span>
+              </label>
+              <fieldset class="segmented segmented--difficulty" id="difficultyField" hidden>
+                <legend>AI Difficulty</legend>
+                <label><input type="radio" name="aiDifficulty" value="easy" /><span>Kitten</span></label>
+                <label><input type="radio" name="aiDifficulty" value="standard" checked /><span>Wacko</span></label>
+                <label><input type="radio" name="aiDifficulty" value="hard" /><span>Overlord</span></label>
+              </fieldset>
+            </section>
 
-          <label class="switch-field">
-            <input id="aiOpponentInput" name="aiOpponent" type="checkbox" />
-            <span>Play vs Wacko AI</span>
-          </label>
+            <section class="start-section">
+              <h3 class="start-section__title">Match</h3>
+              <fieldset class="segmented">
+                <legend>Chaos Intensity</legend>
+                <label><input type="radio" name="intensity" value="mild" /><span>Mild</span></label>
+                <label><input type="radio" name="intensity" value="standard" checked /><span>Standard</span></label>
+                <label><input type="radio" name="intensity" value="unhinged" /><span>Unhinged</span></label>
+              </fieldset>
+              <fieldset class="segmented segmented--timer">
+                <legend>Timer</legend>
+                <label><input type="radio" name="timer" value="unlimited" checked /><span>Unlimited</span></label>
+                <label><input type="radio" name="timer" value="10" /><span>10 min</span></label>
+                <label><input type="radio" name="timer" value="5" /><span>5 min</span></label>
+              </fieldset>
+            </section>
 
-          <fieldset class="segmented segmented--difficulty" id="difficultyField" hidden>
-            <legend>AI Difficulty</legend>
-            <label><input type="radio" name="aiDifficulty" value="easy" /><span>Kitten</span></label>
-            <label><input type="radio" name="aiDifficulty" value="standard" checked /><span>Wacko</span></label>
-            <label><input type="radio" name="aiDifficulty" value="hard" /><span>Overlord</span></label>
-          </fieldset>
+            <section class="start-section">
+              <h3 class="start-section__title">Appearance</h3>
+              <fieldset class="segmented segmented--theme">
+                <legend>Board Theme</legend>
+                <label><input type="radio" name="theme" value="dark" checked /><span>Dark</span></label>
+                <label><input type="radio" name="theme" value="classic" /><span>Classic</span></label>
+                <label><input type="radio" name="theme" value="neon" /><span>Neon</span></label>
+                <label><input type="radio" name="theme" value="ice" /><span>Frozen</span></label>
+              </fieldset>
+              <fieldset class="segmented segmented--pieces">
+                <legend>Piece Style</legend>
+                <label><input type="radio" name="pieceStyle" value="standard" checked /><span>Standard</span></label>
+                <label><input type="radio" name="pieceStyle" value="bold" /><span>Bold</span></label>
+                <label><input type="radio" name="pieceStyle" value="elegant" /><span>Elegant</span></label>
+              </fieldset>
+            </section>
 
-          <fieldset class="segmented">
-            <legend>Chaos Intensity</legend>
-            <label><input type="radio" name="intensity" value="mild" /><span>Mild</span></label>
-            <label><input type="radio" name="intensity" value="standard" checked /><span>Standard</span></label>
-            <label><input type="radio" name="intensity" value="unhinged" /><span>Unhinged</span></label>
-          </fieldset>
-
-          <fieldset class="segmented segmented--timer">
-            <legend>Timer</legend>
-            <label><input type="radio" name="timer" value="unlimited" checked /><span>Unlimited</span></label>
-            <label><input type="radio" name="timer" value="10" /><span>10 min</span></label>
-            <label><input type="radio" name="timer" value="5" /><span>5 min</span></label>
-          </fieldset>
-
-          <fieldset class="segmented segmented--theme">
-            <legend>Board Theme</legend>
-            <label><input type="radio" name="theme" value="dark" checked /><span>Dark Fantasy</span></label>
-            <label><input type="radio" name="theme" value="classic" /><span>Classic Wood</span></label>
-            <label><input type="radio" name="theme" value="neon" /><span>Neon</span></label>
-            <label><input type="radio" name="theme" value="ice" /><span>Frozen</span></label>
-          </fieldset>
-
-          <fieldset class="segmented segmented--pieces">
-            <legend>Piece Style</legend>
-            <label><input type="radio" name="pieceStyle" value="standard" checked /><span>Standard</span></label>
-            <label><input type="radio" name="pieceStyle" value="bold" /><span>Bold</span></label>
-            <label><input type="radio" name="pieceStyle" value="elegant" /><span>Elegant</span></label>
-          </fieldset>
-
-          <fieldset class="segmented segmented--a11y">
-            <legend>Colorblind Mode</legend>
-            <label><input type="radio" name="colorblind" value="none" checked /><span>Off</span></label>
-            <label><input type="radio" name="colorblind" value="deuteranopia" /><span>Deutan</span></label>
-            <label><input type="radio" name="colorblind" value="protanopia" /><span>Protan</span></label>
-            <label><input type="radio" name="colorblind" value="tritanopia" /><span>Tritan</span></label>
-          </fieldset>
-
-          <div class="a11y-toggles">
-            <label class="switch-field">
-              <input id="reducedMotionInput" type="checkbox" />
-              <span>Reduced Motion</span>
-            </label>
-            <label class="volume-label">
-              Font Size <input type="range" id="fontScaleSlider" min="0.8" max="1.4" step="0.05" value="1" />
-            </label>
+            <section class="start-section">
+              <h3 class="start-section__title">Accessibility</h3>
+              <fieldset class="segmented segmented--a11y">
+                <legend>Colorblind Mode</legend>
+                <label><input type="radio" name="colorblind" value="none" checked /><span>Off</span></label>
+                <label><input type="radio" name="colorblind" value="deuteranopia" /><span>Deutan</span></label>
+                <label><input type="radio" name="colorblind" value="protanopia" /><span>Protan</span></label>
+                <label><input type="radio" name="colorblind" value="tritanopia" /><span>Tritan</span></label>
+              </fieldset>
+              <div class="a11y-toggles">
+                <label class="switch-field switch-field--inline">
+                  <input id="reducedMotionInput" type="checkbox" />
+                  <span>Reduced Motion</span>
+                </label>
+                <label class="volume-label">
+                  Font Size <input type="range" id="fontScaleSlider" min="0.8" max="1.4" step="0.05" value="1" />
+                </label>
+              </div>
+            </section>
           </div>
 
           <div class="stats-strip" id="statsStrip"></div>
-          <button class="btn btn--outline-cyan" type="button" id="resumeButton" hidden>Continue Match</button>
-          <button class="btn btn--primary" type="submit">New Match</button>
-          <button class="btn btn--ghost" type="button" id="statsButton">Stats</button>
-          <button class="btn btn--ghost" type="button" id="replaysButton">Replays</button>
+
+          <div class="start-actions">
+            <button class="btn btn--outline-cyan" type="button" id="resumeButton" hidden>Continue Match</button>
+            <button class="btn btn--primary" type="submit">New Match</button>
+            <button class="btn btn--ghost" type="button" id="statsButton">Stats</button>
+            <button class="btn btn--ghost" type="button" id="replaysButton">Replays</button>
+          </div>
         </form>
       </div>
 
